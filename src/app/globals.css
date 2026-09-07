@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0d1117;
+  --surface: #161b22;
+  --surface-light: #1a2332;
+  --border: #30363d;
+  --accent: #58a6ff;
+  --green: #3fb950;
+  --amber: #d29922;
+  --red: #f85149;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+}
+
+body {
+  background: var(--background);
+  color: var(--text-primary);
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+
+@keyframes flowDash {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.flow-line {
+  stroke-dasharray: 8 4;
+  animation: flowDash 1s linear infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { filter: drop-shadow(0 0 3px currentColor); }
+  50% { filter: drop-shadow(0 0 8px currentColor); }
+}
+
+.status-pulse {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.subsystem-node {
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+
+.subsystem-node:hover {
+  filter: drop-shadow(0 0 6px var(--accent));
+}
+
+.subsystem-node.selected {
+  filter: drop-shadow(0 0 10px var(--accent));
+}
