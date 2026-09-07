@@ -13,6 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Radio,
+  BrainCircuit,
+  Wrench,
 } from "lucide-react";
 
 interface SidebarContextType {
@@ -50,6 +52,8 @@ const navItems: NavItem[] = [
   { name: "Failure Cascade", href: "/cascade", icon: AlertTriangle },
   { name: "Resources", href: "/resources", icon: BarChart3 },
   { name: "Resupply", href: "/resupply", icon: Ship },
+  { name: "Predictive", href: "/predictive", icon: Wrench },
+  { name: "AI Copilot", href: "/copilot", icon: BrainCircuit },
 ];
 
 export default function NavSidebar() {

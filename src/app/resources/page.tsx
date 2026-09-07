@@ -3,9 +3,20 @@
 import { useState, useMemo } from "react";
 import { getStation } from "@/data/stations";
 import { runSimulation } from "@/engine/simulation";
-import { SimulationResult, ResourceTimelinePoint } from "@/types";
+import { runMonteCarlo } from "@/engine/monte-carlo";
+import { SimulationResult, ResourceTimelinePoint, MonteCarloResult } from "@/types";
 import ResourceCard from "@/components/resource-card";
 import DepletionChart from "@/components/depletion-chart";
+import RiskHeatmap from "@/components/risk-heatmap";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 export default function ResourcesPage() {
   const [activeStation, setActiveStation] = useState<"maitri" | "bharati">(
@@ -27,6 +38,11 @@ export default function ResourcesPage() {
       resupplyDelayDays: 7,
     });
   }, [station, showComparison]);
+
+  const mcResult = useMemo(() => {
+    if (!station) return null;
+    return runMonteCarlo(station, {});
+  }, [station]);
 
   if (!station || !result) return null;
 
@@ -181,6 +197,110 @@ export default function ResourcesPage() {
           comparisonData={comparisonResult?.resourceTimeline}
         />
       </div>
+
+      {/* Monte Carlo Confidence Bands */}
+      {mcResult && (
+        <div className="mb-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 rounded-lg border p-5" style={{ borderColor: "#30363d", background: "#161b22" }}>
+            <h3 className="text-sm font-bold text-[#8b949e] uppercase tracking-wider mb-1">
+              Monte Carlo Confidence Bands
+            </h3>
+            <p className="text-[11px] text-[#8b949e]/60 mb-4">
+              {mcResult.iterations.toLocaleString()} simulations · 90% confidence interval (P5–P95)
+            </p>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart
+                data={mcResult.confidenceBands}
+                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="mcFuelBand" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#d29922" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#d29922" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#21262d" />
+                <XAxis dataKey="day" stroke="#8b949e" fontSize={11} tickLine={false} />
+                <YAxis stroke="#8b949e" fontSize={11} tickLine={false} domain={[0, "auto"]}
+                  label={{ value: "% Capacity", angle: -90, position: "insideLeft", offset: 10, fill: "#8b949e", fontSize: 11 }} />
+                <Tooltip
+                  contentStyle={{ background: "#161b22", border: "1px solid #30363d", borderRadius: 8, fontSize: 11, fontFamily: "monospace" }}
+                  labelFormatter={(v) => `Day ${v}`}
+                  formatter={(v, name) => [`${Number(v).toFixed(1)}%`, name]}
+                />
+                <Area type="monotone" dataKey="fuelP95" name="P95 (Best)" stroke="#d2992266" strokeWidth={1} fill="none" strokeDasharray="3 3" />
+                <Area type="monotone" dataKey="fuelMedian" name="Median Fuel" stroke="#d29922" strokeWidth={2} fill="url(#mcFuelBand)" />
+                <Area type="monotone" dataKey="fuelP5" name="P5 (Worst)" stroke="#f8514966" strokeWidth={1} fill="none" strokeDasharray="3 3" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border p-4" style={{ borderColor: "#30363d", background: "#161b22" }}>
+              <h3 className="text-xs font-bold text-[#8b949e] uppercase tracking-wider mb-3">Tail Risk Analysis</h3>
+              <div className="space-y-3 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-[#8b949e]">P(depletion in 30d)</span>
+                  <span className="font-mono font-bold" style={{ color: mcResult.tailRisk.probDepletionIn30Days > 0.5 ? "#f85149" : mcResult.tailRisk.probDepletionIn30Days > 0.2 ? "#d29922" : "#3fb950" }}>
+                    {(mcResult.tailRisk.probDepletionIn30Days * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#8b949e]">P(depletion in 60d)</span>
+                  <span className="font-mono font-bold" style={{ color: mcResult.tailRisk.probDepletionIn60Days > 0.5 ? "#f85149" : mcResult.tailRisk.probDepletionIn60Days > 0.2 ? "#d29922" : "#3fb950" }}>
+                    {(mcResult.tailRisk.probDepletionIn60Days * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#8b949e]">P(depletion in 90d)</span>
+                  <span className="font-mono font-bold" style={{ color: mcResult.tailRisk.probDepletionIn90Days > 0.5 ? "#f85149" : mcResult.tailRisk.probDepletionIn90Days > 0.2 ? "#d29922" : "#3fb950" }}>
+                    {(mcResult.tailRisk.probDepletionIn90Days * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="border-t border-[#30363d] pt-2 mt-2">
+                  <div className="flex justify-between mb-1">
+                    <span className="text-[#8b949e]">Expected depletion</span>
+                    <span className="font-mono text-[#e6edf3] font-bold">Day {mcResult.tailRisk.expectedDepletionDay}</span>
+                  </div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-[#8b949e]">Best case</span>
+                    <span className="font-mono text-green-400">Day {mcResult.tailRisk.bestCaseDay}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#8b949e]">Worst case (P5)</span>
+                    <span className="font-mono text-red-400">Day {mcResult.tailRisk.worstCaseDay}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border p-4" style={{ borderColor: "#30363d", background: "#161b22" }}>
+              <h3 className="text-xs font-bold text-[#8b949e] uppercase tracking-wider mb-2">Simulation Stats</h3>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-[#8b949e]">Mean depletion</span>
+                  <span className="font-mono text-[#e6edf3]">Day {mcResult.meanDepletionDay}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#8b949e]">Std deviation</span>
+                  <span className="font-mono text-[#e6edf3]">{mcResult.stdDevDepletion}d</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#8b949e]">Iterations</span>
+                  <span className="font-mono text-[#e6edf3]">{mcResult.iterations.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Risk Heatmap */}
+      {mcResult && (
+        <div className="mb-8">
+          <RiskHeatmap data={mcResult.heatmap} />
+        </div>
+      )}
 
       {/* Resource comparison table */}
       <div
