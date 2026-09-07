@@ -63,36 +63,26 @@ export default function ResupplyPage() {
   return (
     <div className="min-h-screen p-6 max-w-7xl mx-auto">
       <header className="mb-8">
-        <h1
-          className="text-2xl font-bold tracking-wider"
-          style={{ color: "#58a6ff" }}
-        >
+        <h1 className="text-2xl font-bold tracking-wider text-[#edf2e7] uppercase">
           RESUPPLY PRIORITY ENGINE
         </h1>
-        <p className="text-sm text-[#8b949e] mt-1">
+        <p className="text-sm text-[#5a6b48] mt-1 font-mono">
           Optimal cargo prioritization based on current consumption and
           depletion forecasts
         </p>
       </header>
 
       {/* Station selector */}
-      <div
-        className="flex gap-1 p-1 rounded-lg w-fit mb-8"
-        style={{ background: "#161b22" }}
-      >
+      <div className="flex gap-1 p-1 rounded-lg w-fit mb-8 bg-[#101510] border border-[#2a3a1e]">
         {(["maitri", "bharati"] as const).map((id) => (
           <button
             key={id}
             onClick={() => setActiveStation(id)}
-            className="px-6 py-2 rounded-md text-sm font-bold uppercase tracking-wider transition-all"
-            style={{
-              background: activeStation === id ? "#1a2332" : "transparent",
-              color: activeStation === id ? "#58a6ff" : "#8b949e",
-              border:
-                activeStation === id
-                  ? "1px solid #58a6ff40"
-                  : "1px solid transparent",
-            }}
+            className={`px-6 py-2 rounded-md text-sm font-bold uppercase tracking-wider transition-all font-mono ${
+              activeStation === id
+                ? "bg-[#1a2518] text-[#a9b97a] border border-[#7d9154]/40"
+                : "text-[#5a6b48] border border-transparent hover:text-[#7c8b65]"
+            }`}
           >
             {id === "maitri" ? "Maitri" : "Bharati"}
           </button>
@@ -102,7 +92,7 @@ export default function ResupplyPage() {
       <div className="flex gap-6">
         {/* Main priority list */}
         <div className="flex-1">
-          <h2 className="text-sm font-bold text-[#8b949e] uppercase tracking-wider mb-4">
+          <h2 className="text-sm font-bold text-[#7c8b65] uppercase tracking-wider mb-4 font-mono">
             Priority Cargo List — {station.name}
           </h2>
           <ResupplyPriorityList items={baseItems} />
@@ -110,19 +100,16 @@ export default function ResupplyPage() {
 
         {/* Side panel — Cargo Manifest */}
         <div className="w-72 flex-shrink-0">
-          <div
-            className="rounded-lg border p-5 sticky top-6"
-            style={{ borderColor: "#30363d", background: "#161b22" }}
-          >
-            <h3 className="text-sm font-bold text-[#8b949e] uppercase tracking-wider mb-4">
+          <div className="rounded-lg border border-[#2a3a1e] bg-[#101510] p-5 sticky top-6">
+            <h3 className="text-sm font-bold text-[#7c8b65] uppercase tracking-wider mb-4 font-mono">
               Cargo Manifest
             </h3>
 
             <div className="mb-4">
-              <div className="text-xs text-[#8b949e] mb-1">Total Weight</div>
-              <div className="text-2xl font-bold text-[#e6edf3]">
+              <div className="text-xs text-[#5a6b48] mb-1 font-mono">Total Weight</div>
+              <div className="text-2xl font-bold text-[#edf2e7]">
                 {(totalWeight / 1000).toFixed(1)}{" "}
-                <span className="text-sm text-[#8b949e]">tonnes</span>
+                <span className="text-sm text-[#5a6b48]">tonnes</span>
               </div>
             </div>
 
@@ -136,7 +123,7 @@ export default function ResupplyPage() {
                       className="w-2 h-2 rounded-full"
                       style={{ backgroundColor: priorityColors[level] }}
                     />
-                    <span className="text-xs text-[#8b949e]">{level}</span>
+                    <span className="text-xs text-[#5a6b48]">{level}</span>
                   </div>
                   <span
                     className="text-sm font-bold"
@@ -148,27 +135,17 @@ export default function ResupplyPage() {
               ))}
             </div>
 
-            <div
-              className="pt-4 mb-4"
-              style={{ borderTop: "1px solid #30363d" }}
-            >
-              <div className="text-xs text-[#8b949e] mb-1">
+            <div className="pt-4 mb-4 border-t border-[#2a3a1e]">
+              <div className="text-xs text-[#5a6b48] mb-1 font-mono">
                 Estimated Volume
               </div>
-              <div className="text-lg font-bold text-[#e6edf3]">
+              <div className="text-lg font-bold text-[#edf2e7]">
                 {(totalWeight / 800).toFixed(1)}{" "}
-                <span className="text-xs text-[#8b949e]">m³</span>
+                <span className="text-xs text-[#5a6b48]">m³</span>
               </div>
             </div>
 
-            <button
-              className="w-full py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors"
-              style={{
-                border: "1px solid #58a6ff40",
-                background: "#58a6ff15",
-                color: "#58a6ff",
-              }}
-            >
+            <button className="w-full py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors font-mono text-[#7d9154] bg-[#7d9154]/10 border border-[#7d9154]/30 hover:bg-[#7d9154]/20">
               Export Manifest
             </button>
           </div>
@@ -177,17 +154,14 @@ export default function ResupplyPage() {
 
       {/* Scenario Impact section */}
       <div className="mt-10">
-        <div
-          className="rounded-lg border p-6"
-          style={{ borderColor: "#30363d", background: "#161b22" }}
-        >
+        <div className="rounded-lg border border-[#2a3a1e] bg-[#101510] p-6">
           <div className="flex items-center gap-3 mb-6">
             <span className="text-xl">⏱️</span>
             <div>
-              <h2 className="text-lg font-bold text-[#e6edf3]">
+              <h2 className="text-lg font-bold text-[#edf2e7] font-mono">
                 Scenario Impact
               </h2>
-              <p className="text-xs text-[#8b949e]">
+              <p className="text-xs text-[#5a6b48]">
                 What if resupply is delayed by 7 more days?
               </p>
             </div>
@@ -196,7 +170,7 @@ export default function ResupplyPage() {
           <div className="flex gap-6">
             {/* Before */}
             <div className="flex-1">
-              <h3 className="text-xs font-bold text-[#8b949e] uppercase tracking-wider mb-3">
+              <h3 className="text-xs font-bold text-[#7c8b65] uppercase tracking-wider mb-3 font-mono">
                 Current Priorities
               </h3>
               <div className="space-y-2">
@@ -210,8 +184,7 @@ export default function ResupplyPage() {
                   return (
                     <div
                       key={item.id}
-                      className="flex items-center gap-3 px-3 py-2 rounded-md text-sm"
-                      style={{ background: "#0d1117" }}
+                      className="flex items-center gap-3 px-3 py-2 rounded-md text-sm bg-[#0d1424]"
                     >
                       <span
                         className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold"
@@ -222,8 +195,8 @@ export default function ResupplyPage() {
                       >
                         {idx + 1}
                       </span>
-                      <span className="flex-1 text-[#e6edf3]">{item.name}</span>
-                      <span className="text-xs text-[#8b949e] font-mono">
+                      <span className="flex-1 text-[#edf2e7]">{item.name}</span>
+                      <span className="text-xs text-[#5a6b48] font-mono">
                         {Math.round(item.priorityScore * 100)}
                       </span>
                       {moved !== 0 && (
@@ -244,17 +217,12 @@ export default function ResupplyPage() {
 
             {/* Arrow */}
             <div className="flex items-center">
-              <div
-                className="text-2xl"
-                style={{ color: "#f85149" }}
-              >
-                →
-              </div>
+              <div className="text-2xl text-[#f85149]">→</div>
             </div>
 
             {/* After */}
             <div className="flex-1">
-              <h3 className="text-xs font-bold text-[#f85149] uppercase tracking-wider mb-3">
+              <h3 className="text-xs font-bold text-[#f85149] uppercase tracking-wider mb-3 font-mono">
                 With +7 Day Delay
               </h3>
               <div className="space-y-2">
@@ -267,15 +235,11 @@ export default function ResupplyPage() {
                   return (
                     <div
                       key={item.id}
-                      className="flex items-center gap-3 px-3 py-2 rounded-md text-sm"
-                      style={{
-                        background:
-                          moved > 0 ? "#f8514908" : "#0d1117",
-                        border:
-                          moved > 0
-                            ? "1px solid #f8514920"
-                            : "1px solid transparent",
-                      }}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm ${
+                        moved > 0
+                          ? "bg-[#f8514908] border border-[#f8514920]"
+                          : "bg-[#0d1424] border border-transparent"
+                      }`}
                     >
                       <span
                         className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold"
@@ -286,8 +250,8 @@ export default function ResupplyPage() {
                       >
                         {idx + 1}
                       </span>
-                      <span className="flex-1 text-[#e6edf3]">{item.name}</span>
-                      <span className="text-xs text-[#8b949e] font-mono">
+                      <span className="flex-1 text-[#edf2e7]">{item.name}</span>
+                      <span className="text-xs text-[#5a6b48] font-mono">
                         {Math.round(item.priorityScore * 100)}
                       </span>
                       {moved !== 0 && (

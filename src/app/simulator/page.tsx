@@ -36,30 +36,30 @@ export default function SimulatorPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-mono">
       {/* Top Header */}
-      <div className="rounded-2xl border border-[#1e293b] bg-gradient-to-r from-[#0c1322] via-[#0f172a] to-[#0c1322] p-6 shadow-xl">
+      <div className="rounded-2xl border border-[#2a3a1e] bg-gradient-to-r from-[#0d1424] via-[#101510] to-[#0d1424] p-6 shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="flex h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span className="text-[10px] font-bold tracking-widest uppercase text-cyan-400">
+              <span className="flex h-2 w-2 rounded-full bg-[#7d9154] animate-pulse" />
+              <span className="text-[10px] font-bold tracking-widest uppercase text-[#7d9154]">
                 PROBABILISTIC CASCADE PREDICTION ENGINE
               </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase flex items-center gap-2.5">
-              <FlaskConical className="h-7 w-7 text-cyan-400" />
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-[#edf2e7] uppercase flex items-center gap-2.5">
+              <FlaskConical className="h-7 w-7 text-[#7d9154]" />
               WHAT-IF DIGITAL TWIN SIMULATOR
             </h1>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-[#7c8b65] mt-1">
               Test extreme thermal anomalies, generator trips, and logistics blackout scenarios
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="rounded-lg border border-[#1e293b] bg-[#090d16] px-3.5 py-2 flex items-center gap-2.5 text-xs text-slate-300">
-              <Cpu className="h-4 w-4 text-cyan-400" />
+            <div className="rounded-lg border border-[#2a3a1e] bg-[#0d1424] px-3.5 py-2 flex items-center gap-2.5 text-xs text-[#7c8b65]">
+              <Cpu className="h-4 w-4 text-[#7d9154]" />
               <div>
-                <div className="text-[9px] text-slate-500 uppercase">Solver Mode</div>
-                <div className="font-bold text-white">Nonlinear Cascade v2.4</div>
+                <div className="text-[9px] text-[#5a6b48] uppercase">Solver Mode</div>
+                <div className="font-bold text-[#edf2e7]">Nonlinear Cascade v2.4</div>
               </div>
             </div>
           </div>
@@ -67,8 +67,8 @@ export default function SimulatorPage() {
       </div>
 
       {/* Info notice */}
-      <div className="flex items-center gap-2 rounded-xl border border-cyan-500/20 bg-cyan-950/20 px-4 py-2.5 text-xs text-cyan-300">
-        <Info className="h-4 w-4 shrink-0 text-cyan-400" />
+      <div className="flex items-center gap-2 rounded-xl border border-[#7d9154]/20 bg-[#7d9154]/5 px-4 py-2.5 text-xs text-[#a9b97a]">
+        <Info className="h-4 w-4 shrink-0 text-[#7d9154]" />
         <span>
           Simulations evaluate inter-subsystem dependencies across Electrical, Thermal, Life Support, and Logistics domains using deterministic first-principles modeling.
         </span>

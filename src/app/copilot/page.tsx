@@ -18,14 +18,14 @@ export default function CopilotPage() {
   }, [station]);
 
   return (
-    <div className="min-h-screen bg-[var(--background)] p-6">
+    <div className="min-h-screen bg-[#0b100b] p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <BrainCircuit className="w-6 h-6 text-[var(--accent)]" />
+            <BrainCircuit className="w-6 h-6 text-[#7d9154]" />
             <div>
-              <h1 className="text-2xl font-mono text-white tracking-wider">AI OPS COPILOT</h1>
-              <p className="text-sm text-slate-400 mt-1">Natural language station diagnostics &amp; recommendations</p>
+              <h1 className="text-2xl font-mono text-[#edf2e7] tracking-wider uppercase">AI OPS COPILOT</h1>
+              <p className="text-sm text-[#5a6b48] mt-1 font-mono">Natural language station diagnostics &amp; recommendations</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -35,8 +35,8 @@ export default function CopilotPage() {
                 onClick={() => setSelectedStation(id)}
                 className={`px-3 py-1.5 rounded-md text-xs font-mono uppercase border transition-colors ${
                   selectedStation === id
-                    ? "bg-[var(--accent)]/20 border-[var(--accent)]/50 text-[var(--accent)]"
-                    : "border-[#334155] text-slate-400 hover:border-slate-500"
+                    ? "bg-[#7d9154]/20 border-[#7d9154]/50 text-[#a9b97a]"
+                    : "border-[#2a3a1e] text-[#5a6b48] hover:border-[#7c8b65]"
                 }`}
               >
                 {id}
@@ -52,32 +52,32 @@ export default function CopilotPage() {
 
           <div className="lg:col-span-2 space-y-6">
             {station && (
-              <div className="bg-[var(--surface)] border border-[#1e293b] rounded-lg p-4">
-                <div className="text-xs font-mono text-slate-500 mb-3">STATION SNAPSHOT</div>
+              <div className="bg-[#101510] border border-[#2a3a1e] rounded-lg p-4">
+                <div className="text-xs font-mono text-[#5a6b48] mb-3 uppercase tracking-wider">STATION SNAPSHOT</div>
                 <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="bg-[#0d1117] rounded-md p-2.5">
-                    <div className="text-slate-500">Crew</div>
-                    <div className="text-white font-mono">{station.crewCount}/{station.crewMax}</div>
+                  <div className="bg-[#0d1424] rounded-md p-2.5">
+                    <div className="text-[#5a6b48]">Crew</div>
+                    <div className="text-[#edf2e7] font-mono">{station.crewCount}/{station.crewMax}</div>
                   </div>
-                  <div className="bg-[#0d1117] rounded-md p-2.5">
-                    <div className="text-slate-500">Temp</div>
-                    <div className="text-white font-mono">{station.temperature}°C</div>
+                  <div className="bg-[#0d1424] rounded-md p-2.5">
+                    <div className="text-[#5a6b48]">Temp</div>
+                    <div className="text-[#edf2e7] font-mono">{station.temperature}°C</div>
                   </div>
-                  <div className="bg-[#0d1117] rounded-md p-2.5">
-                    <div className="text-slate-500">Generator</div>
-                    <div className="text-white font-mono">{station.generatorLoad}%</div>
+                  <div className="bg-[#0d1424] rounded-md p-2.5">
+                    <div className="text-[#5a6b48]">Generator</div>
+                    <div className="text-[#edf2e7] font-mono">{station.generatorLoad}%</div>
                   </div>
-                  <div className="bg-[#0d1117] rounded-md p-2.5">
-                    <div className="text-slate-500">Fuel</div>
-                    <div className="text-white font-mono">{station.fuelDaysRemaining}d</div>
+                  <div className="bg-[#0d1424] rounded-md p-2.5">
+                    <div className="text-[#5a6b48]">Fuel</div>
+                    <div className="text-[#edf2e7] font-mono">{station.fuelDaysRemaining}d</div>
                   </div>
-                  <div className="bg-[#0d1117] rounded-md p-2.5">
-                    <div className="text-slate-500">Water</div>
-                    <div className="text-white font-mono">{station.waterDaysRemaining}d</div>
+                  <div className="bg-[#0d1424] rounded-md p-2.5">
+                    <div className="text-[#5a6b48]">Water</div>
+                    <div className="text-[#edf2e7] font-mono">{station.waterDaysRemaining}d</div>
                   </div>
-                  <div className="bg-[#0d1117] rounded-md p-2.5">
-                    <div className="text-slate-500">Risk</div>
-                    <div className="text-white font-mono">{station.riskLevel}</div>
+                  <div className="bg-[#0d1424] rounded-md p-2.5">
+                    <div className="text-[#5a6b48]">Risk</div>
+                    <div className="text-[#edf2e7] font-mono">{station.riskLevel}</div>
                   </div>
                 </div>
               </div>

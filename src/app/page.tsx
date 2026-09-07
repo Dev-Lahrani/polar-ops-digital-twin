@@ -2,20 +2,45 @@
 
 import { useState, useEffect } from "react";
 import { stations } from "@/data/stations";
-import StationCard from "@/components/station-card";
-import StatusGauge from "@/components/status-gauge";
+import ResourceBar from "@/components/resource-bar";
+import SystemOverview from "@/components/system-overview";
 import RiskIndicator from "@/components/risk-indicator";
 import { RiskLevel } from "@/types";
 import {
+  Clock,
+  ShieldCheck,
+  AlertTriangle,
   Users,
   Zap,
   Fuel,
   Ship,
-  AlertTriangle,
-  Clock,
-  ShieldCheck,
-  Activity,
+  Thermometer,
+  Wind,
+  ChevronRight,
 } from "lucide-react";
+import Link from "next/link";
+
+function getRiskBorder(level: RiskLevel): string {
+  switch (level) {
+    case "EMERGENCY": return "border-red-700 shadow-[0_0_20px_rgba(185,28,28,0.15)]";
+    case "CRITICAL": return "border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.1)]";
+    case "WARNING": return "border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.08)]";
+    case "CAUTION": return "border-yellow-500/30";
+    case "NOMINAL": return "border-[#2a3a1e]";
+    default: return "border-[#2a3a1e]";
+  }
+}
+
+function getRiskBadgeColor(level: RiskLevel): string {
+  switch (level) {
+    case "EMERGENCY": return "bg-red-800 text-red-200 border-red-600";
+    case "CRITICAL": return "bg-red-900/60 text-red-400 border-red-500/40";
+    case "WARNING": return "bg-amber-900/40 text-amber-400 border-amber-500/30";
+    case "CAUTION": return "bg-yellow-900/30 text-yellow-400 border-yellow-500/20";
+    case "NOMINAL": return "bg-emerald-900/30 text-emerald-400 border-emerald-500/20";
+    default: return "bg-[#141b13] text-[#7c8b65] border-[#2a3a1e]";
+  }
+}
 
 export default function MissionControlDashboard() {
   const [mounted, setMounted] = useState(false);
@@ -25,17 +50,13 @@ export default function MissionControlDashboard() {
     setMounted(true);
     const updateTime = () => {
       const now = new Date();
-      const utcString = now.toUTCString().replace("GMT", "UTC");
-      const iso = now.toISOString().split(".")[0].replace("T", " ");
-      setCurrentTime(`${iso} UTC`);
+      setCurrentTime(now.toUTCString().replace("GMT", "UTC"));
     };
-
     updateTime();
     const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Compute Global Risk
   const globalRisk: RiskLevel = stations.some(
     (s) => s.riskLevel === "EMERGENCY" || s.riskLevel === "CRITICAL"
   )
@@ -46,35 +67,18 @@ export default function MissionControlDashboard() {
     ? "CAUTION"
     : "NOMINAL";
 
-  // Calculate Quick Stats
   const totalCrew = stations.reduce((acc, s) => acc + s.crewCount, 0);
   const maxCrew = stations.reduce((acc, s) => acc + s.crewMax, 0);
-
   const avgGenLoad = Math.round(
-    stations.reduce((acc, s) => acc + (s.generatorLoad ?? 65), 0) /
-      (stations.length || 1)
+    stations.reduce((acc, s) => acc + (s.generatorLoad ?? 65), 0) / (stations.length || 1)
   );
+  const daysToNextResupply = Math.min(...stations.map((s) => s.nextResupplyDays ?? 30));
 
-  const totalFuelL = stations.reduce(
-    (acc, s) => acc + (s.fuelCurrentL ?? (s.resources.fuel / 100) * 60000),
-    0
-  );
-  const maxFuelL = stations.reduce(
-    (acc, s) => acc + (s.fuelCapacityL ?? 65000),
-    0
-  );
-
-  const daysToNextResupply = Math.min(
-    ...stations.map((s) => s.nextResupplyDays ?? 30)
-  );
-
-  // Generate Resource & System Alerts
   const alerts: Array<{
     id: string;
     station: string;
     severity: "CRITICAL" | "WARNING" | "CAUTION";
     message: string;
-    detail: string;
   }> = [];
 
   stations.forEach((st) => {
@@ -83,185 +87,184 @@ export default function MissionControlDashboard() {
         id: `${st.id}-fuel`,
         station: st.name,
         severity: (st.fuelDaysRemaining ?? 99) <= 15 ? "CRITICAL" : "WARNING",
-        message: `${st.name} fuel reserve at ${st.resources.fuel}% — ${st.fuelDaysRemaining} days remaining`,
-        detail: "Below standard 30-day polar reserve safety threshold. Consolidate non-essential heating.",
+        message: `${st.name} fuel at ${st.resources.fuel}% — ${st.fuelDaysRemaining}d remaining`,
       });
     }
-
     if ((st.waterDaysRemaining ?? 99) <= 20) {
       alerts.push({
         id: `${st.id}-water`,
         station: st.name,
         severity: (st.waterDaysRemaining ?? 99) <= 10 ? "CRITICAL" : "WARNING",
-        message: `${st.name} water treatment at ${st.resources.water}% — ${st.waterDaysRemaining} days remaining`,
-        detail: "RO filtration duty cycle exceeding safe pressure limits. Maintenance window required.",
+        message: `${st.name} water at ${st.resources.water}% — ${st.waterDaysRemaining}d remaining`,
       });
     }
-
-    if (st.resources.food <= 40 || (st.foodDaysRemaining ?? 99) <= 45) {
-      alerts.push({
-        id: `${st.id}-food`,
-        station: st.name,
-        severity: "CAUTION",
-        message: `${st.name} food stocks at ${st.resources.food}% — ${st.foodDaysRemaining} days remaining`,
-        detail: "Caloric buffer intact. Projected resupply window must hold without delay.",
-      });
-    }
-
-    // Subsystem specific alerts
     st.subsystems.forEach((sub) => {
       if (sub.status === "CRITICAL" || sub.status === "EMERGENCY") {
         alerts.push({
           id: `${st.id}-${sub.id}`,
           station: st.name,
           severity: "CRITICAL",
-          message: `${st.name} ${sub.name} is ${sub.status} (load ${sub.loadPercent}%)`,
-          detail: Object.entries(sub.details)
-            .slice(0, 2)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join(" | "),
-        });
-      } else if (sub.status === "WARNING" && sub.loadPercent >= 75) {
-        alerts.push({
-          id: `${st.id}-${sub.id}`,
-          station: st.name,
-          severity: "WARNING",
-          message: `${st.name} ${sub.name} running at elevated load (${sub.loadPercent}%)`,
-          detail: Object.entries(sub.details)
-            .slice(0, 2)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join(" | "),
+          message: `${st.name} ${sub.name} ${sub.status} (${sub.loadPercent}%)`,
         });
       }
     });
   });
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      {/* TOP SECTION: Title, Live Clock, Global Risk */}
-      <header className="rounded-2xl border border-[#1e293b] bg-gradient-to-r from-[#0d1424] via-[#0f172a] to-[#0d1424] p-6 shadow-xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="flex h-2.5 w-2.5 rounded-full bg-cyan-400 animate-pulse" />
-              <span className="text-[11px] font-mono tracking-widest uppercase text-cyan-400 font-bold">
-                NATIONAL CENTRE FOR POLAR & OCEAN RESEARCH (NCPOR)
-              </span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white font-mono uppercase">
-              POLAR-OPS MISSION CONTROL
-            </h1>
-            <p className="text-xs text-slate-400 font-mono">
-              Live Digital Twin Command & Decision Support Center
-            </p>
+    <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-[#7c8b65]">
+              NATIONAL CENTRE FOR POLAR & OCEAN RESEARCH
+            </span>
           </div>
+          <h1 className="text-xl md:text-2xl font-black tracking-tight text-[#edf2e7] font-mono uppercase">
+            POLAR-OPS MISSION CONTROL
+          </h1>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-3 md:gap-5">
-            {/* Live Clock */}
-            <div className="flex items-center gap-2.5 rounded-lg border border-[#1e293b] bg-[#090d16] px-3.5 py-2">
-              <Clock className="h-4 w-4 text-cyan-400 animate-spin-slow" />
-              <div className="flex flex-col">
-                <span className="text-[9px] uppercase tracking-wider text-slate-500 font-mono">
-                  Mission Time
-                </span>
-                <span className="text-xs font-mono font-bold text-slate-100 tracking-wider">
-                  {mounted ? currentTime || "SYNCHRONIZING..." : "SYNCHRONIZING..."}
-                </span>
-              </div>
-            </div>
-
-            {/* Global Risk Indicator */}
-            <div className="flex items-center gap-2.5 rounded-lg border border-[#1e293b] bg-[#090d16] px-3.5 py-2">
-              <ShieldCheck className="h-4 w-4 text-slate-400" />
-              <div className="flex flex-col">
-                <span className="text-[9px] uppercase tracking-wider text-slate-500 font-mono">
-                  Global Fleet Risk
-                </span>
-                <div className="mt-0.5">
-                  <RiskIndicator level={globalRisk} size="sm" />
-                </div>
-              </div>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-md border border-[#2a3a1e] bg-[#101510] px-3 py-1.5">
+            <Clock className="h-3.5 w-3.5 text-[#7d9154]" />
+            <span className="text-[10px] font-mono text-[#edf2e7]">
+              {mounted ? currentTime || "SYNC..." : "SYNC..."}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 rounded-md border border-[#2a3a1e] bg-[#101510] px-3 py-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-[#7c8b65]" />
+            <RiskIndicator level={globalRisk} size="sm" />
           </div>
         </div>
       </header>
 
-      {/* MAIN GRID: Two large StationCard components side-by-side */}
+      {/* Station Cards */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-cyan-400" />
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 font-mono">
-              Antarctic Station Telemetry Nodes
-            </h2>
-          </div>
-          <span className="text-xs text-slate-500 font-mono">
-            2 of 2 Stations Telemetry Linked
+          <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#7c8b65] font-mono">
+            Station Telemetry
+          </h2>
+          <span className="text-[10px] text-[#5a6b48] font-mono">
+            {stations.length} stations linked
           </span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {stations.map((station) => (
-            <StationCard key={station.id} station={station} />
+            <div
+              key={station.id}
+              className={`rounded-xl border bg-[#101510] p-5 transition-all hover:bg-[#141b13] ${getRiskBorder(station.riskLevel)}`}
+            >
+              {/* Card Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <Link href={`/station/${station.id}`} className="text-sm font-bold text-[#edf2e7] font-mono uppercase hover:text-[#a9b97a] transition-colors">
+                      {station.name}
+                    </Link>
+                    <span className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded border ${getRiskBadgeColor(station.riskLevel)}`}>
+                      {station.riskLevel}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-[#5a6b48] font-mono">{station.location}</p>
+                </div>
+                <div className="flex items-center gap-3 text-[10px] font-mono text-[#7c8b65]">
+                  <span className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    {station.crewCount}/{station.crewMax}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Thermometer className="h-3 w-3" />
+                    {station.temperature}°C
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Wind className="h-3 w-3" />
+                    {station.windSpeed}km/h
+                  </span>
+                </div>
+              </div>
+
+              {/* Resource Bars */}
+              <div className="space-y-2.5 mb-4">
+                <ResourceBar
+                  label="Fuel"
+                  value={station.resources.fuel}
+                  icon="⛽"
+                  daysRemaining={station.fuelDaysRemaining}
+                />
+                <ResourceBar
+                  label="Water"
+                  value={station.resources.water}
+                  icon="💧"
+                  daysRemaining={station.waterDaysRemaining}
+                />
+                <ResourceBar
+                  label="Food"
+                  value={station.resources.food}
+                  icon="📦"
+                  daysRemaining={station.foodDaysRemaining}
+                />
+                <ResourceBar
+                  label="Power"
+                  value={station.resources.power}
+                  icon="⚡"
+                />
+              </div>
+
+              {/* System Overview + Link */}
+              <div className="flex items-end justify-between">
+                <div className="flex-1">
+                  <SystemOverview subsystems={station.subsystems} />
+                </div>
+                <Link
+                  href={`/station/${station.id}`}
+                  className="ml-3 flex items-center gap-1 text-[10px] font-mono text-[#7d9154] hover:text-[#a9b97a] transition-colors shrink-0"
+                >
+                  Details <ChevronRight className="h-3 w-3" />
+                </Link>
+              </div>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* ALERTS SECTION: Resources & Systems below warning thresholds */}
+      {/* Alerts Grid */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-400" />
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 font-mono">
-            Active System & Resource Dispatches ({alerts.length})
+          <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+          <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#7c8b65] font-mono">
+            Active Alerts ({alerts.length})
           </h2>
         </div>
 
         {alerts.length === 0 ? (
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/10 p-4 text-center text-xs text-emerald-400 font-mono">
-            ✓ All station resources and life support telemetry within nominal parameters.
+          <div className="rounded-xl border border-emerald-500/20 bg-[#101510] p-4 text-center text-xs text-emerald-400 font-mono">
+            All systems nominal
           </div>
         ) : (
-          <div className="space-y-2.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
             {alerts.map((alert) => {
               const isCrit = alert.severity === "CRITICAL";
-              const isWarn = alert.severity === "WARNING";
-
               return (
                 <div
                   key={alert.id}
-                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl border p-3.5 transition-all font-mono ${
+                  className={`flex items-center gap-3 rounded-lg border p-3 font-mono ${
                     isCrit
-                      ? "border-red-500/40 bg-red-950/20 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.08)]"
-                      : isWarn
-                      ? "border-amber-500/40 bg-amber-950/20 text-amber-300"
-                      : "border-yellow-500/30 bg-yellow-950/15 text-yellow-300"
+                      ? "border-red-500/30 bg-red-950/20 text-red-300"
+                      : "border-amber-500/20 bg-amber-950/15 text-amber-300"
                   }`}
                 >
-                  <div className="flex items-start gap-3">
-                    <span className="text-base mt-0.5">
-                      {isCrit ? "🚨" : "⚠"}
-                    </span>
-                    <div className="space-y-0.5">
-                      <div className="text-xs font-bold tracking-wide">
-                        {alert.message}
-                      </div>
-                      <div className="text-[11px] text-slate-400">
-                        {alert.detail}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="self-end sm:self-center shrink-0">
-                    <span
-                      className={`text-[10px] uppercase font-bold px-2.5 py-1 rounded-full border ${
-                        isCrit
-                          ? "border-red-500/50 bg-red-500/10 text-red-400"
-                          : "border-amber-500/50 bg-amber-500/10 text-amber-400"
-                      }`}
-                    >
-                      {alert.severity}
-                    </span>
-                  </div>
+                  <span className={`h-2 w-2 rounded-full shrink-0 ${isCrit ? "bg-red-500" : "bg-amber-500"}`} />
+                  <span className="text-[11px]">{alert.message}</span>
+                  <span className={`ml-auto text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border shrink-0 ${
+                    isCrit
+                      ? "border-red-500/40 bg-red-500/10 text-red-400"
+                      : "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                  }`}>
+                    {alert.severity}
+                  </span>
                 </div>
               );
             })}
@@ -269,56 +272,30 @@ export default function MissionControlDashboard() {
         )}
       </section>
 
-      {/* BOTTOM SECTION: Quick stats row using StatusGauge */}
+      {/* Quick Stats */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-cyan-400" />
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300 font-mono">
-            Consolidated Polar Fleet Metrics
+          <Zap className="h-3.5 w-3.5 text-[#7d9154]" />
+          <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#7c8b65] font-mono">
+            Fleet Metrics
           </h2>
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <StatusGauge
-            label="Total Personnel"
-            value={totalCrew}
-            max={maxCrew}
-            unit="crew"
-            warningThreshold={85}
-            criticalThreshold={95}
-            icon={Users}
-            showPercentage={true}
-          />
-          <StatusGauge
-            label="Avg Generator Load"
-            value={avgGenLoad}
-            max={100}
-            unit="%"
-            warningThreshold={75}
-            criticalThreshold={85}
-            icon={Zap}
-            showPercentage={true}
-          />
-          <StatusGauge
-            label="Total Fuel Reserve"
-            value={totalFuelL}
-            max={maxFuelL}
-            unit="L"
-            warningThreshold={40}
-            criticalThreshold={25}
-            icon={Fuel}
-            showPercentage={true}
-          />
-          <StatusGauge
-            label="Nearest Resupply"
-            value={daysToNextResupply}
-            max={90}
-            unit="days"
-            warningThreshold={30}
-            criticalThreshold={15}
-            icon={Ship}
-            showPercentage={false}
-          />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "PERSONNEL", value: `${totalCrew}/${maxCrew}`, sub: "crew", icon: Users },
+            { label: "GEN LOAD", value: `${avgGenLoad}%`, sub: "average", icon: Zap },
+            { label: "FUEL", value: `${Math.round(stations.reduce((a, s) => a + s.resources.fuel, 0) / stations.length)}%`, sub: "average", icon: Fuel },
+            { label: "RESUPPLY", value: `${daysToNextResupply}d`, sub: "nearest", icon: Ship },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-lg border border-[#2a3a1e] bg-[#101510] p-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <stat.icon className="h-3 w-3 text-[#7d9154]" />
+                <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-[#5a6b48]">{stat.label}</span>
+              </div>
+              <div className="text-lg font-bold font-mono text-[#edf2e7]">{stat.value}</div>
+              <span className="text-[10px] font-mono text-[#5a6b48]">{stat.sub}</span>
+            </div>
+          ))}
         </div>
       </section>
     </div>

@@ -9,42 +9,47 @@ interface RiskIndicatorProps {
 
 const config: Record<
   RiskLevel,
-  { dot: string; bg: string; text: string; pulse: string; glow: string }
+  { dot: string; bg: string; text: string; pulse: string; glow: string; border: string }
 > = {
   NOMINAL: {
-    dot: "bg-[#22c55e]",
-    bg: "bg-[#22c55e]/15",
-    text: "text-[#22c55e]",
-    pulse: "animate-pulse",
+    dot: "bg-emerald-500",
+    bg: "bg-emerald-500/15",
+    text: "text-emerald-400",
+    pulse: "",
     glow: "",
+    border: "border-emerald-500/30",
   },
   CAUTION: {
-    dot: "bg-[#eab308]",
-    bg: "bg-[#eab308]/15",
-    text: "text-[#eab308]",
-    pulse: "animate-pulse",
+    dot: "bg-yellow-500",
+    bg: "bg-yellow-500/15",
+    text: "text-yellow-400",
+    pulse: "",
     glow: "",
+    border: "border-yellow-500/30",
   },
   WARNING: {
-    dot: "bg-[#f97316]",
-    bg: "bg-[#f97316]/15",
-    text: "text-[#f97316]",
+    dot: "bg-amber-500",
+    bg: "bg-amber-500/15",
+    text: "text-amber-400",
     pulse: "animate-pulse",
     glow: "",
+    border: "border-amber-500/30",
   },
   CRITICAL: {
-    dot: "bg-[#ef4444]",
-    bg: "bg-[#ef4444]/15",
-    text: "text-[#ef4444]",
+    dot: "bg-red-500",
+    bg: "bg-red-500/15",
+    text: "text-red-400",
     pulse: "animate-[pulse_0.8s_ease-in-out_infinite]",
-    glow: "",
+    glow: "shadow-[0_0_8px_rgba(239,68,68,0.4)]",
+    border: "border-red-500/40",
   },
   EMERGENCY: {
-    dot: "bg-[#dc2626]",
-    bg: "bg-[#dc2626]/20",
-    text: "text-red-400",
+    dot: "bg-red-700",
+    bg: "bg-red-800/20",
+    text: "text-red-300",
     pulse: "animate-[pulse_0.4s_ease-in-out_infinite]",
-    glow: "shadow-[0_0_10px_rgba(220,38,38,0.7)]",
+    glow: "shadow-[0_0_12px_rgba(185,28,28,0.6)]",
+    border: "border-red-700/60",
   },
 };
 
@@ -60,10 +65,10 @@ export default function RiskIndicator({ level, size = "md" }: RiskIndicatorProps
 
   return (
     <span
-      className={`inline-flex items-center rounded-full font-medium tracking-wider uppercase ${c.bg} ${c.text} ${s.badge}`}
+      className={`inline-flex items-center rounded-full font-mono font-bold tracking-wider uppercase border ${c.bg} ${c.text} ${c.border} ${c.glow} ${s.badge}`}
     >
       <span className="relative flex shrink-0">
-        <span className={`${s.dot} rounded-full ${c.dot} ${c.pulse} ${c.glow}`} />
+        <span className={`${s.dot} rounded-full ${c.dot} ${c.pulse}`} />
       </span>
       {level}
     </span>

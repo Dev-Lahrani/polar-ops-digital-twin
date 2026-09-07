@@ -79,19 +79,16 @@ export default function CascadePage() {
     <div className="min-h-screen p-6 max-w-6xl mx-auto">
       {/* Header */}
       <header className="mb-8">
-        <h1
-          className="text-2xl font-bold tracking-wider"
-          style={{ color: "#f85149" }}
-        >
+        <h1 className="text-2xl font-bold tracking-wider text-[#edf2e7] uppercase">
           FAILURE CASCADE SIMULATOR
         </h1>
-        <p className="text-sm text-[#8b949e] mt-1">
+        <p className="text-sm text-[#5a6b48] mt-1 font-mono">
           Simulate equipment failures and observe system-wide impact
         </p>
       </header>
 
       {/* Station selector tabs */}
-      <div className="flex gap-1 mb-8 p-1 rounded-lg w-fit" style={{ background: "#161b22" }}>
+      <div className="flex gap-1 mb-8 p-1 rounded-lg w-fit bg-[#101510] border border-[#2a3a1e]">
         {(["maitri", "bharati"] as const).map((id) => (
           <button
             key={id}
@@ -100,17 +97,11 @@ export default function CascadePage() {
               setResult(null);
               setSelectedPreset(null);
             }}
-            className="px-6 py-2 rounded-md text-sm font-bold uppercase tracking-wider transition-all"
-            style={{
-              background:
-                activeStation === id ? "#1a2332" : "transparent",
-              color:
-                activeStation === id ? "#58a6ff" : "#8b949e",
-              border:
-                activeStation === id
-                  ? "1px solid #58a6ff40"
-                  : "1px solid transparent",
-            }}
+            className={`px-6 py-2 rounded-md text-sm font-bold uppercase tracking-wider transition-all font-mono ${
+              activeStation === id
+                ? "bg-[#1a2518] text-[#a9b97a] border border-[#7d9154]/40"
+                : "text-[#5a6b48] border border-transparent hover:text-[#7c8b65]"
+            }`}
           >
             {id === "maitri" ? "Maitri" : "Bharati"}
           </button>
@@ -123,28 +114,32 @@ export default function CascadePage() {
           <button
             key={preset.id}
             onClick={() => handlePresetClick(preset.id)}
-            className="text-left rounded-lg border p-5 transition-all hover:scale-[1.02]"
+            className={`text-left rounded-lg border p-5 transition-all hover:scale-[1.02] ${
+              selectedPreset === preset.id
+                ? "shadow-lg"
+                : "border-[#2a3a1e] bg-[#101510]"
+            }`}
             style={{
               borderColor:
-                selectedPreset === preset.id ? preset.color : "#30363d",
+                selectedPreset === preset.id ? preset.color : undefined,
               background:
                 selectedPreset === preset.id
                   ? `${preset.color}10`
-                  : "#161b22",
+                  : undefined,
               boxShadow:
                 selectedPreset === preset.id
                   ? `0 0 20px ${preset.color}20`
-                  : "none",
+                  : undefined,
             }}
           >
             <div className="text-3xl mb-3">{preset.icon}</div>
             <div
-              className="text-sm font-bold mb-1"
+              className="text-sm font-bold mb-1 font-mono"
               style={{ color: preset.color }}
             >
               {preset.label}
             </div>
-            <div className="text-xs text-[#8b949e]">
+            <div className="text-xs text-[#7c8b65]">
               {preset.description}
             </div>
           </button>
@@ -153,17 +148,17 @@ export default function CascadePage() {
 
       {/* Results */}
       {result && (
-        <div className="rounded-lg border p-6" style={{ borderColor: "#30363d", background: "#0d1117" }}>
+        <div className="rounded-lg border border-[#2a3a1e] bg-[#101510] p-6">
           <div className="flex items-center gap-3 mb-6">
             <span className="text-xl">
               {failurePresets.find((p) => p.id === selectedPreset)?.icon}
             </span>
             <div>
-              <h2 className="text-lg font-bold text-[#e6edf3]">
+              <h2 className="text-lg font-bold text-[#edf2e7] font-mono">
                 {failurePresets.find((p) => p.id === selectedPreset)?.label} —{" "}
                 {station?.name}
               </h2>
-              <p className="text-xs text-[#8b949e]">
+              <p className="text-xs text-[#5a6b48]">
                 Cascade propagation simulation results
               </p>
             </div>
@@ -174,12 +169,9 @@ export default function CascadePage() {
 
       {/* Empty state */}
       {!result && (
-        <div
-          className="rounded-lg border p-12 text-center"
-          style={{ borderColor: "#30363d", background: "#161b22" }}
-        >
+        <div className="rounded-lg border border-[#2a3a1e] bg-[#101510] p-12 text-center">
           <div className="text-4xl mb-4">⚠️</div>
-          <p className="text-[#8b949e] text-sm">
+          <p className="text-[#7c8b65] text-sm font-mono">
             Select a failure scenario above to begin the cascade simulation
           </p>
         </div>

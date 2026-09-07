@@ -7,7 +7,7 @@ function ShellContent({ children }: { children: React.ReactNode }) {
   const { collapsed } = useSidebar();
 
   return (
-    <div className="flex min-h-screen bg-[#0a0a0f] text-slate-200">
+    <div className="flex min-h-screen bg-[#0b100b] text-[#edf2e7]">
       <NavSidebar />
       <main
         className={`flex-1 transition-all duration-300 min-h-screen p-6 md:p-8 overflow-y-auto ${
