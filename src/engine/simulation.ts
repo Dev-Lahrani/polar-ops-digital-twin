@@ -1,4 +1,4 @@
-import { Station, SimulationInput, SimulationResult, CascadeStep, StationMetrics, RiskLevel } from "@/types";
+import { Station, SimulationInput, SimulationResult, CascadeStep, StationMetrics, RiskLevel, ResourceTimelinePoint } from "@/types";
 
 function riskOrder(r: RiskLevel): number {
   return r === "critical" ? 2 : r === "warning" ? 1 : 0;
@@ -46,6 +46,58 @@ function buildBeforeMetrics(station: Station): StationMetrics {
     foodDays: 45,
     riskLevel: hasCritical ? "critical" : hasWarning ? "warning" : "nominal",
   };
+}
+
+function getResourceCapacity(station: Station) {
+  const fuel = station.subsystems.find((s) => s.id === "fuel");
+  const water = station.subsystems.find((s) => s.id === "water");
+
+  const fuelCapacity = fuel
+    ? parseInt((fuel.details["Capacity"] ?? "50000").replace(/,/g, ""), 10)
+    : 50000;
+  const fuelCurrent = fuel
+    ? parseInt((fuel.details["Current"] ?? "27000").replace(/,/g, ""), 10)
+    : 27000;
+  const waterCapacity = 20000;
+  const waterCurrent = water
+    ? parseInt((water.details["Reserve"] ?? "10000").replace(/,/g, ""), 10)
+    : 10000;
+
+  return { fuelCapacity, fuelCurrent, waterCapacity, waterCurrent };
+}
+
+function generateTimeline(
+  station: Station,
+  fuelDays: number,
+  waterReserve: number,
+  foodDays: number
+): ResourceTimelinePoint[] {
+  const { fuelCapacity, fuelCurrent, waterCapacity, waterCurrent } =
+    getResourceCapacity(station);
+  const foodCapacity = 3000;
+  const foodCurrent = Math.round((foodDays / 90) * foodCapacity);
+
+  const dailyFuelBurn = fuelCapacity / Math.max(fuelDays, 1);
+  const dailyWaterUse = waterCurrent / Math.max(fuelDays, 1);
+  const dailyFoodUse = foodCurrent / Math.max(foodDays, 1);
+
+  const timeline: ResourceTimelinePoint[] = [];
+  for (let day = 0; day <= 90; day++) {
+    const fuelLitres = Math.max(0, fuelCurrent - dailyFuelBurn * day);
+    const waterLitres = Math.max(0, waterCurrent - dailyWaterUse * day);
+    const foodKg = Math.max(0, foodCurrent - dailyFoodUse * day);
+
+    timeline.push({
+      day,
+      fuelPct: Math.round((fuelLitres / fuelCapacity) * 100),
+      waterPct: Math.round((waterLitres / waterCapacity) * 100),
+      foodPct: Math.round((foodKg / foodCapacity) * 100),
+      fuelLitres: Math.round(fuelLitres),
+      waterLitres: Math.round(waterLitres),
+      foodKg: Math.round(foodKg),
+    });
+  }
+  return timeline;
 }
 
 export function runSimulation(
@@ -420,7 +472,16 @@ export function runSimulation(
     riskLevel: overallRisk,
   };
 
-  return { steps, before, after, mitigations };
+  const resourceTimeline = generateTimeline(
+    station,
+    fuelDays,
+    waterReserve,
+    foodDays
+  );
+
+  const nextResupplyDay = 30;
+
+  return { steps, before, after, mitigations, resourceTimeline, nextResupplyDay };
 }
 
 export function getMetricDelta(

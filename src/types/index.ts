@@ -56,9 +56,21 @@ export interface SimulationInput {
   resupplyDelayDays?: number;
 }
 
+export interface ResourceTimelinePoint {
+  day: number;
+  fuelPct: number;
+  waterPct: number;
+  foodPct: number;
+  fuelLitres: number;
+  waterLitres: number;
+  foodKg: number;
+}
+
 export interface SimulationResult {
   steps: CascadeStep[];
   before: StationMetrics;
   after: StationMetrics;
   mitigations: string[];
+  resourceTimeline: ResourceTimelinePoint[];
+  nextResupplyDay: number;
 }
