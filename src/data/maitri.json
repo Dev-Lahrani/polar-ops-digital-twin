@@ -1,0 +1,32 @@
+{
+  "id": "maitri",
+  "name": "Maitri Research Station",
+  "location": { "lat": -70.7667, "lng": 11.7333, "region": "Schirmacher Oasis, Queen Maud Land" },
+  "established": 1989,
+  "crew": { "current": 23, "winterCapacity": 25, "summerCapacity": 60 },
+  "power": {
+    "generators": [
+      { "id": "GEN-M1", "name": "Generator 01", "capacity_kva": 75, "status": "online", "fuel_rate_lph": 18, "current_load_pct": 55 },
+      { "id": "GEN-M2", "name": "Generator 02", "capacity_kva": 75, "status": "online", "fuel_rate_lph": 18, "current_load_pct": 48 }
+    ],
+    "total_capacity_kw": 120,
+    "current_load_kw": 78
+  },
+  "fuel": { "current_litres": 180000, "capacity_litres": 250000, "daily_consumption_litres": 850, "type": "Jet A-1" },
+  "water": { "current_litres": 45000, "capacity_litres": 60000, "daily_consumption_litres": 575 },
+  "food": { "current_kg": 8200, "capacity_kg": 12000, "daily_consumption_kg": 57.5 },
+  "medical": { "current_units": 420, "capacity_units": 600, "daily_consumption_units": 2 },
+  "environment": { "temperature_c": -14, "wind_speed_kmh": 35, "humidity_pct": 45, "visibility_m": 800, "condition": "Clear" },
+  "subsystems": [
+    { "id": "sys-gen1", "name": "Primary Generator", "type": "generator", "status": "nominal", "load_pct": 55, "details": { "runtime_hrs": 4200 } },
+    { "id": "sys-gen2", "name": "Secondary Generator", "type": "generator", "status": "nominal", "load_pct": 48, "details": { "runtime_hrs": 3800 } },
+    { "id": "sys-hvac", "name": "HVAC System", "type": "hvac", "status": "nominal", "load_pct": 65, "details": { "zones_active": 8 } },
+    { "id": "sys-water", "name": "Water Plant", "type": "water_plant", "status": "nominal", "load_pct": 40, "details": { "output_lph": 120 } },
+    { "id": "sys-comms", "name": "SatCom Array", "type": "comms", "status": "nominal", "load_pct": 20, "details": { "uplink_mbps": 12 } },
+    { "id": "sys-fuel", "name": "Fuel Storage", "type": "fuel_storage", "status": "nominal", "load_pct": 72, "details": { "tanks_online": 3 } },
+    { "id": "sys-hab", "name": "Main Habitat", "type": "habitat", "status": "nominal", "load_pct": 80, "details": { "temp_c": 21 } },
+    { "id": "sys-lab", "name": "Science Lab", "type": "lab", "status": "nominal", "load_pct": 45, "details": { "experiments": 4 } }
+  ],
+  "next_resupply_date": "2027-01-15",
+  "resupply_window": { "start": "2026-11-01", "end": "2027-02-28" }
+}
