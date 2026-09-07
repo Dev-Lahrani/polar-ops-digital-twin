@@ -11,15 +11,19 @@ interface SubsystemNodeProps {
 }
 
 const statusColors: Record<RiskLevel, string> = {
-  nominal: "#3fb950",
-  warning: "#d29922",
-  critical: "#f85149",
+  NOMINAL: "#3fb950",
+  CAUTION: "#eab308",
+  WARNING: "#d29922",
+  CRITICAL: "#f85149",
+  EMERGENCY: "#b91c1c",
 };
 
 const statusBorders: Record<RiskLevel, string> = {
-  nominal: "#3fb950",
-  warning: "#d29922",
-  critical: "#f85149",
+  NOMINAL: "#3fb950",
+  CAUTION: "#eab308",
+  WARNING: "#d29922",
+  CRITICAL: "#f85149",
+  EMERGENCY: "#b91c1c",
 };
 
 export default function SubsystemNode({

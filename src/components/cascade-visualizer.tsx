@@ -10,16 +10,30 @@ import {
 } from "@/types";
 import { getMetricDelta } from "@/engine/simulation";
 
-const severityColors: Record<RiskLevel, string> = {
+const severityColors: Record<string, string> = {
+  NOMINAL: "#3fb950",
+  CAUTION: "#eab308",
+  WARNING: "#d29922",
+  CRITICAL: "#f85149",
+  EMERGENCY: "#b91c1c",
   nominal: "#3fb950",
   warning: "#d29922",
   critical: "#f85149",
+  info: "#38bdf8",
+  INFO: "#38bdf8",
 };
 
-const severityBg: Record<RiskLevel, string> = {
+const severityBg: Record<string, string> = {
+  NOMINAL: "#3fb95015",
+  CAUTION: "#eab30815",
+  WARNING: "#d2992215",
+  CRITICAL: "#f8514915",
+  EMERGENCY: "#b91c1c15",
   nominal: "#3fb95015",
   warning: "#d2992215",
   critical: "#f8514915",
+  info: "#38bdf815",
+  INFO: "#38bdf815",
 };
 
 const domainColors: Record<Domain, string> = {
@@ -282,7 +296,9 @@ export default function CascadeVisualizer({
               }}
             >
               <span className="text-[#58a6ff] mt-0.5">▸</span>
-              <span className="text-[#e6edf3]">{m}</span>
+              <span className="text-[#e6edf3]">
+                {typeof m === "string" ? m : `${m.action} (${m.impact})`}
+              </span>
             </div>
           ))}
         </div>

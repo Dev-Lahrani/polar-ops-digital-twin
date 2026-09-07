@@ -8,12 +8,30 @@ export const stations: Station[] = [
     latitude: -70.7667,
     longitude: 23.2667,
     established: 1989,
+    crewCount: 25,
+    crewMax: 40,
+    riskLevel: "WARNING",
+    resources: {
+      power: 68,
+      fuel: 54,
+      water: 35,
+      food: 82,
+    },
+    temperature: -32,
+    windSpeed: 45,
+    generatorLoad: 82,
+    fuelDaysRemaining: 25,
+    waterDaysRemaining: 18,
+    foodDaysRemaining: 45,
+    nextResupplyDays: 28,
+    fuelCurrentL: 27000,
+    fuelCapacityL: 50000,
     subsystems: [
       {
         id: "habitat",
         name: "Central Habitat",
         type: "habitat",
-        status: "nominal",
+        status: "NOMINAL",
         loadPercent: 68,
         icon: "🏠",
         details: {
@@ -28,7 +46,7 @@ export const stations: Station[] = [
         id: "generator",
         name: "Generator Room",
         type: "power",
-        status: "warning",
+        status: "WARNING",
         loadPercent: 82,
         icon: "⚡",
         details: {
@@ -43,7 +61,7 @@ export const stations: Station[] = [
         id: "fuel",
         name: "Fuel Storage",
         type: "storage",
-        status: "nominal",
+        status: "NOMINAL",
         loadPercent: 54,
         icon: "⛽",
         details: {
@@ -58,7 +76,7 @@ export const stations: Station[] = [
         id: "hvac",
         name: "HVAC System",
         type: "climate",
-        status: "nominal",
+        status: "NOMINAL",
         loadPercent: 71,
         icon: "🌡️",
         details: {
@@ -73,7 +91,7 @@ export const stations: Station[] = [
         id: "water",
         name: "Water Treatment",
         type: "water",
-        status: "critical",
+        status: "CRITICAL",
         loadPercent: 95,
         icon: "💧",
         details: {
@@ -88,7 +106,7 @@ export const stations: Station[] = [
         id: "comms",
         name: "Communications",
         type: "comms",
-        status: "nominal",
+        status: "NOMINAL",
         loadPercent: 34,
         icon: "📡",
         details: {
@@ -103,7 +121,7 @@ export const stations: Station[] = [
         id: "science",
         name: "Science Lab",
         type: "science",
-        status: "nominal",
+        status: "NOMINAL",
         loadPercent: 58,
         icon: "🔬",
         details: {
@@ -118,7 +136,7 @@ export const stations: Station[] = [
         id: "emergency",
         name: "Emergency Systems",
         type: "safety",
-        status: "nominal",
+        status: "NOMINAL",
         loadPercent: 12,
         icon: "🚨",
         details: {
@@ -138,12 +156,30 @@ export const stations: Station[] = [
     latitude: -69.3731,
     longitude: 76.375,
     established: 2012,
+    crewCount: 35,
+    crewMax: 47,
+    riskLevel: "CAUTION",
+    resources: {
+      power: 88,
+      fuel: 72,
+      water: 78,
+      food: 92,
+    },
+    temperature: -28,
+    windSpeed: 38,
+    generatorLoad: 56,
+    fuelDaysRemaining: 80,
+    waterDaysRemaining: 65,
+    foodDaysRemaining: 75,
+    nextResupplyDays: 45,
+    fuelCurrentL: 57600,
+    fuelCapacityL: 80000,
     subsystems: [
       {
         id: "habitat",
         name: "Central Habitat",
         type: "habitat",
-        status: "nominal",
+        status: "NOMINAL",
         loadPercent: 45,
         icon: "🏠",
         details: {
@@ -158,7 +194,7 @@ export const stations: Station[] = [
         id: "generator",
         name: "Generator Room",
         type: "power",
-        status: "nominal",
+        status: "NOMINAL",
         loadPercent: 56,
         icon: "⚡",
         details: {
@@ -173,7 +209,7 @@ export const stations: Station[] = [
         id: "fuel",
         name: "Fuel Storage",
         type: "storage",
-        status: "nominal",
+        status: "NOMINAL",
         loadPercent: 72,
         icon: "⛽",
         details: {
@@ -188,7 +224,7 @@ export const stations: Station[] = [
         id: "hvac",
         name: "HVAC System",
         type: "climate",
-        status: "warning",
+        status: "WARNING",
         loadPercent: 78,
         icon: "🌡️",
         details: {
@@ -203,7 +239,7 @@ export const stations: Station[] = [
         id: "water",
         name: "Water Treatment",
         type: "water",
-        status: "nominal",
+        status: "NOMINAL",
         loadPercent: 40,
         icon: "💧",
         details: {
@@ -218,7 +254,7 @@ export const stations: Station[] = [
         id: "comms",
         name: "Communications",
         type: "comms",
-        status: "nominal",
+        status: "NOMINAL",
         loadPercent: 28,
         icon: "📡",
         details: {
@@ -233,7 +269,7 @@ export const stations: Station[] = [
         id: "science",
         name: "Science Lab",
         type: "science",
-        status: "nominal",
+        status: "NOMINAL",
         loadPercent: 63,
         icon: "🔬",
         details: {
@@ -248,7 +284,7 @@ export const stations: Station[] = [
         id: "emergency",
         name: "Emergency Systems",
         type: "safety",
-        status: "nominal",
+        status: "NOMINAL",
         loadPercent: 8,
         icon: "🚨",
         details: {

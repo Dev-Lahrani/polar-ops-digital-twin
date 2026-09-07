@@ -1,50 +1,73 @@
-import { Station, SimulationInput, SimulationResult, CascadeStep, StationMetrics, RiskLevel } from "@/types";
+import {
+  Station,
+  SimulationInput,
+  SimulationResult,
+  CascadeStep,
+  StationMetrics,
+  RiskLevel,
+  Mitigation,
+  MetricsComparison,
+} from "@/types";
 
-function riskOrder(r: RiskLevel): number {
-  return r === "critical" ? 2 : r === "warning" ? 1 : 0;
+function riskRank(r: RiskLevel | string): number {
+  switch (r.toUpperCase()) {
+    case "EMERGENCY":
+      return 4;
+    case "CRITICAL":
+      return 3;
+    case "WARNING":
+      return 2;
+    case "CAUTION":
+      return 1;
+    default:
+      return 0;
+  }
 }
 
 function worseRisk(a: RiskLevel, b: RiskLevel): RiskLevel {
-  return riskOrder(a) >= riskOrder(b) ? a : b;
+  return riskRank(a) >= riskRank(b) ? a : b;
 }
 
-function metricDelta(
+export function getMetricDelta(
   metric: keyof StationMetrics,
   before: StationMetrics,
   after: StationMetrics
 ): "worse" | "same" | "better" {
-  const bv = before[metric] as number;
-  const av = after[metric] as number;
+  const bv = before[metric];
+  const av = after[metric];
   if (metric === "riskLevel") {
-    return riskOrder(after.riskLevel) > riskOrder(before.riskLevel)
+    return riskRank(after.riskLevel) > riskRank(before.riskLevel)
       ? "worse"
-      : riskOrder(after.riskLevel) < riskOrder(before.riskLevel)
+      : riskRank(after.riskLevel) < riskRank(before.riskLevel)
       ? "better"
       : "same";
   }
-  // For numeric metrics, lower is worse (fuel days, water reserve, food days, power)
-  return av < bv ? "worse" : av > bv ? "better" : "same";
+  const bNum = typeof bv === "number" ? bv : 0;
+  const aNum = typeof av === "number" ? av : 0;
+  return aNum < bNum ? "worse" : aNum > bNum ? "better" : "same";
 }
 
 function buildBeforeMetrics(station: Station): StationMetrics {
   const gen = station.subsystems.find((s) => s.id === "generator");
   const fuel = station.subsystems.find((s) => s.id === "fuel");
   const water = station.subsystems.find((s) => s.id === "water");
-  const statuses = station.subsystems.map((s) => s.status);
-  const hasCritical = statuses.some((s) => s === "critical");
-  const hasWarning = statuses.some((s) => s === "warning");
+
+  const fuelDays =
+    station.fuelDaysRemaining ??
+    (fuel ? parseInt(fuel.details["DaysRemaining"] ?? "30", 10) : 30);
+  const waterReserve =
+    water && water.details["Reserve"]
+      ? parseInt(water.details["Reserve"].replace(/,/g, ""), 10)
+      : 15000;
 
   return {
-    power: gen ? (100 - gen.loadPercent) : 50,
-    fuelDays: fuel ? parseInt(fuel.details["DaysRemaining"] ?? "30", 10) : 30,
-    waterReserve: water
-      ? parseInt(
-          (water.details["Reserve"] ?? "10000").replace(/,/g, ""),
-          10
-        )
-      : 10000,
-    foodDays: 45,
-    riskLevel: hasCritical ? "critical" : hasWarning ? "warning" : "nominal",
+    power: station.resources.power ?? (gen ? 100 - gen.loadPercent : 50),
+    fuelDays,
+    waterReserve,
+    foodDays: station.foodDaysRemaining ?? 45,
+    riskLevel: station.riskLevel ?? "NOMINAL",
+    generatorLoad: station.generatorLoad ?? (gen ? gen.loadPercent : 60),
+    fuelBurnRate: station.id === "maitri" ? 45 : 30,
   };
 }
 
@@ -56,361 +79,382 @@ export function runSimulation(
   let stepNum = 1;
   const before = buildBeforeMetrics(station);
 
-  // Clone before state for simulation
+  // Baseline variables
+  const baselineTemp = station.temperature ?? -28;
+  const baselineCrew = station.crewCount ?? 35;
+  const maxGenerators = station.id === "maitri" ? 3 : 3;
+  const genCapacityEach = station.id === "maitri" ? 166.7 : 250; // kW per generator
+  const baseGeneratorLoad = before.generatorLoad ?? 56;
+  const baseBurnRate = before.fuelBurnRate ?? 32;
+
+  // Active inputs or fallbacks
+  const tempC = input.temperatureC !== undefined ? input.temperatureC : baselineTemp;
+  const crew = input.crewCount !== undefined ? input.crewCount : baselineCrew;
+  const gensOnline =
+    input.generatorsOnline !== undefined
+      ? input.generatorsOnline
+      : input.failedSubsystem === "generator"
+      ? 1
+      : maxGenerators;
+  const sciLoad =
+    input.scientificLoadPercent !== undefined ? input.scientificLoadPercent : 65;
+  const delayDays = input.resupplyDelayDays ?? 0;
+
+  // Track simulated state
+  let currentGenLoad = baseGeneratorLoad;
+  let currentBurnRate = baseBurnRate;
   let powerAvail = before.power;
   let fuelDays = before.fuelDays;
   let waterReserve = before.waterReserve;
   let foodDays = before.foodDays;
   let overallRisk: RiskLevel = before.riskLevel;
-  const mitigations: string[] = [];
+  const mitigations: Mitigation[] = [];
 
-  // --- Generator Failure ---
-  if (input.failedSubsystem === "generator" || input.generatorsOnline === 1) {
-    powerAvail = Math.max(powerAvail - 35, 10);
-    overallRisk = worseRisk(overallRisk, "critical");
+  // 1. GENERATOR CAPACITY & LOAD
+  const totalGenCapacity = maxGenerators * genCapacityEach;
+  const activeGenCapacity = Math.max(gensOnline * genCapacityEach, 1);
+  const genCapacityLostPercent = Math.round(
+    ((totalGenCapacity - activeGenCapacity) / totalGenCapacity) * 100
+  );
+
+  if (gensOnline < maxGenerators || input.failedSubsystem === "generator") {
+    const offlineCount = maxGenerators - gensOnline;
+    currentGenLoad = Math.min(
+      Math.round((currentGenLoad * totalGenCapacity) / activeGenCapacity),
+      100
+    );
+    powerAvail = Math.max(Math.round(powerAvail * (gensOnline / maxGenerators)), 15);
+    currentBurnRate = Math.round(currentBurnRate * 1.25);
+    fuelDays = Math.max(Math.round(fuelDays * 0.75), 3);
+    overallRisk = worseRisk(overallRisk, gensOnline === 1 ? "CRITICAL" : "WARNING");
 
     steps.push({
       step: stepNum++,
       domain: "power",
-      variable: "Generators Online",
-      fromValue: "3 / 3",
-      toValue: "1 / 3",
-      severity: "critical",
-      description: "Primary generator goes offline, output drops to 33%",
+      variable: "Active Generators",
+      fromValue: `${maxGenerators} / ${maxGenerators}`,
+      toValue: `${gensOnline} / ${maxGenerators}`,
+      unit: "online",
+      severity: gensOnline === 1 ? "CRITICAL" : "WARNING",
+      description: `${offlineCount} generator(s) offline. Total generation headroom eliminated.`,
+      explanation: `Loss of ${genCapacityLostPercent}% generating capacity increases load on remaining units.`,
+      equation: [
+        `Step ${stepNum - 1}: Generator Capacity Loss`,
+        `active_capacity = ${gensOnline} × ${genCapacityEach} kW = ${activeGenCapacity.toFixed(1)} kW`,
+        `capacity_drop = ${totalGenCapacity.toFixed(1)} kW → ${activeGenCapacity.toFixed(1)} kW (-${genCapacityLostPercent}%)`,
+        `adjusted_load = (${baseGeneratorLoad}% × ${totalGenCapacity.toFixed(1)}) / ${activeGenCapacity.toFixed(1)} = ${currentGenLoad}%`,
+      ].join("\n"),
     });
+
     steps.push({
       step: stepNum++,
       domain: "power",
-      variable: "Available Power",
-      fromValue: `${before.power}%`,
-      toValue: `${powerAvail}%`,
-      severity: "critical",
-      description: "Power reserves critically depleted",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "habitat",
-      variable: "Habitat Systems",
-      fromValue: "120 kW draw",
-      toValue: "Load shedding active",
-      severity: "warning",
-      description: "Non-essential circuits disconnected",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "science",
-      variable: "Science Lab",
-      fromValue: "4 experiments active",
-      toValue: "All paused",
-      severity: "warning",
-      description: "Lab power allocation suspended for crew safety",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "climate",
-      variable: "HVAC Power Feed",
-      fromValue: "85 kW heating",
-      toValue: "Reduced to 40 kW",
-      severity: "warning",
-      description: "Heating reduced — habitat temperature dropping",
+      variable: "Generator Load Factor",
+      fromValue: `${baseGeneratorLoad}%`,
+      toValue: `${currentGenLoad}%`,
+      unit: "%",
+      severity: currentGenLoad >= 90 ? "CRITICAL" : "WARNING",
+      description: `Surviving generators operating at elevated thermal stress profile.`,
+      explanation: `Exceeding 85% continuous threshold risks catastrophic generator trip.`,
+      equation: [
+        `Step ${stepNum - 1}: Thermal Stress Derating`,
+        `rated_max_continuous = 85%`,
+        `stress_delta = ${currentGenLoad}% - 85% = +${Math.max(0, currentGenLoad - 85)}%`,
+        `projected_mtbf_reduction = stress_delta × 4.2% = ${(Math.max(0, currentGenLoad - 85) * 4.2).toFixed(1)}%`,
+      ].join("\n"),
     });
 
-    fuelDays = Math.max(fuelDays - 3, 5);
-    steps.push({
-      step: stepNum++,
-      domain: "fuel",
-      variable: "Fuel Consumption Rate",
-      fromValue: "45 L/hr",
-      toValue: "62 L/hr (backup engine)",
-      severity: "warning",
-      description: "Backup generator burns fuel less efficiently",
+    mitigations.push({
+      priority: "CRITICAL",
+      action: "Initiate Tier-1 non-essential load shedding across auxiliary labs",
+      impact: "Reduces peak generator demand by 35 kW (approx -14% load)",
+      category: "Power Grid",
     });
-
-    mitigations.push("Switch to backup generator immediately");
-    mitigations.push("Reduce habitat power draw by 40%");
-    mitigations.push("Request emergency fuel resupply via satellite");
-    mitigations.push("Prepare manual power rationing protocol");
   }
 
-  // --- HVAC Failure ---
-  if (input.failedSubsystem === "hvac") {
-    overallRisk = worseRisk(overallRisk, "critical");
-    steps.push({
-      step: stepNum++,
-      domain: "climate",
-      variable: "HVAC Status",
-      fromValue: "Operational",
-      toValue: "OFFLINE",
-      severity: "critical",
-      description: "Heating and ventilation system completely failed",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "climate",
-      variable: "Habitat Temperature",
-      fromValue: "22°C",
-      toValue: "8°C and falling",
-      severity: "critical",
-      description: "Internal temperature dropping toward ambient",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "habitat",
-      variable: "Crew Safety",
-      fromValue: "All safe",
-      toValue: "Cold stress risk",
-      severity: "warning",
-      description: "Crew exposed to hypothermia risk within hours",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "water",
-      variable: "Pipe Temperature",
-      fromValue: "Above freezing",
-      toValue: "Approaching 0°C",
-      severity: "warning",
-      description: "Water pipes at risk of freezing and bursting",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "science",
-      variable: "Lab Specimens",
-      fromValue: "Properly stored",
-      toValue: "Temperature excursion",
-      severity: "warning",
-      description: "Biological samples at risk of thaw damage",
-    });
+  // 2. TEMPERATURE & THERMAL DEFICIT
+  const deltaT = baselineTemp - tempC; // e.g. -28 - (-40) = +12 deg drop
+  if (deltaT > 0 || input.failedSubsystem === "hvac") {
+    const heatKiloWattsPerDeg = station.id === "maitri" ? 1.8 : 2.4;
+    const additionalHeatLoadKW = Math.round(deltaT * heatKiloWattsPerDeg);
+    const addedGenLoad = Math.round((additionalHeatLoadKW / activeGenCapacity) * 100);
+    currentGenLoad = Math.min(100, currentGenLoad + addedGenLoad);
+    currentBurnRate = Math.round(currentBurnRate + (additionalHeatLoadKW * 0.22));
+    const fuelDaysDrop = Math.max(1, Math.round((deltaT / 10) * 4));
+    fuelDays = Math.max(2, fuelDays - fuelDaysDrop);
 
-    foodDays = Math.max(foodDays - 5, 5);
-    mitigations.push("Activate emergency chemical heaters");
-    mitigations.push("Consolidate crew into single habitat wing");
-    mitigations.push("Insulate water pipes with emergency wrap");
-    mitigations.push("Evacuate non-essential modules");
-  }
-
-  // --- Water Plant Failure ---
-  if (input.failedSubsystem === "water_plant") {
-    waterReserve = Math.max(waterReserve - 4000, 500);
-    overallRisk = worseRisk(overallRisk, "critical");
-
-    steps.push({
-      step: stepNum++,
-      domain: "water",
-      variable: "Treatment Plant",
-      fromValue: "2,400 L/day",
-      toValue: "0 L/day",
-      severity: "critical",
-      description: "Water treatment plant offline — no fresh water production",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "water",
-      variable: "Reserve Supply",
-      fromValue: `${before.waterReserve.toLocaleString()} L`,
-      toValue: `${waterReserve.toLocaleString()} L`,
-      severity: "warning",
-      description: "Reserve depleting at 2,280 L/day demand",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "habitat",
-      variable: "Water Rationing",
-      fromValue: "Normal use",
-      toValue: "Strict rationing",
-      severity: "warning",
-      description: "Crew water allocation reduced to 8L/person/day",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "safety",
-      variable: "Fire Suppression",
-      fromValue: "Full capacity",
-      toValue: "Reduced reserves",
-      severity: "warning",
-      description: "Fire suppression water reserves affected",
-    });
-
-    mitigations.push("Activate emergency water rationing protocol");
-    mitigations.push("Deploy backup filtration units");
-    mitigations.push("Melt snow/ice for emergency water supply");
-    mitigations.push("Request priority water resupply");
-  }
-
-  // --- Communications Failure ---
-  if (input.failedSubsystem === "comms") {
-    overallRisk = worseRisk(overallRisk, "warning");
-    steps.push({
-      step: stepNum++,
-      domain: "comms",
-      variable: "Satellite Link",
-      fromValue: "Connected (10 Mbps)",
-      toValue: "DISCONNECTED",
-      severity: "critical",
-      description: "All satellite communication links lost",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "comms",
-      variable: "Data Link to Base",
-      fromValue: "Active",
-      toValue: "Offline",
-      severity: "critical",
-      description: "No telemetry or data transmission to mission control",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "safety",
-      variable: "Emergency Beacon",
-      fromValue: "Ready",
-      toValue: "Fallback HF radio",
-      severity: "warning",
-      description: "Emergency communications switched to backup",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "science",
-      variable: "Data Upload",
-      fromValue: "Scheduled sync",
-      toValue: "Paused",
-      severity: "warning",
-      description: "Research data cannot be transmitted",
-    });
-
-    mitigations.push("Switch to Iridium backup satellite");
-    mitigations.push("Deploy portable HF radio antenna");
-    mitigations.push("Store critical data locally for later upload");
-    mitigations.push("Contact rescue coordination via HF frequency");
-  }
-
-  // --- Extreme Cold Event ---
-  if (input.temperatureC !== undefined && input.temperatureC <= -40) {
-    overallRisk = worseRisk(overallRisk, "critical");
+    const tempSeverity: RiskLevel =
+      tempC <= -38 || input.failedSubsystem === "hvac" ? "CRITICAL" : "WARNING";
+    overallRisk = worseRisk(overallRisk, tempSeverity);
 
     steps.push({
       step: stepNum++,
       domain: "climate",
-      variable: "External Temperature",
-      fromValue: "-28°C",
-      toValue: `${input.temperatureC}°C`,
-      severity: "critical",
-      description: "Extreme cold event — temperature plummets",
+      variable: "Thermal Envelope Demand",
+      fromValue: `${baselineTemp}°C`,
+      toValue: `${tempC}°C`,
+      unit: "ambient",
+      severity: tempSeverity,
+      description: `Outdoor temperature dropped by ${deltaT}°C below nominal winter rating.`,
+      explanation: `Structure heat loss Q = U × A × ΔT demands exponential auxiliary heating.`,
+      equation: [
+        `Step ${stepNum - 1}: Thermal Envelope Infiltration`,
+        `ΔT_ambient = |${tempC}°C - (${baselineTemp}°C)| = ${deltaT.toFixed(1)}°C`,
+        `thermal_load_delta = ${deltaT.toFixed(1)}°C × ${heatKiloWattsPerDeg} kW/°C = +${additionalHeatLoadKW} kW`,
+        `generator_impact = (+${additionalHeatLoadKW} kW / ${activeGenCapacity.toFixed(1)} kW) × 100 = +${addedGenLoad}%`,
+      ].join("\n"),
     });
-    steps.push({
-      step: stepNum++,
-      domain: "power",
-      variable: "Heating Demand",
-      fromValue: "85 kW",
-      toValue: "180 kW (max capacity)",
-      severity: "critical",
-      description: "Heating demand exceeds generator capacity",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "climate",
-      variable: "Habitat Temperature",
-      fromValue: "22°C",
-      toValue: "14°C and falling",
-      severity: "critical",
-      description: "Cannot maintain safe internal temperature",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "fuel",
-      variable: "Fuel Burn Rate",
-      fromValue: "45 L/hr",
-      toValue: "95 L/hr",
-      severity: "warning",
-      description: "Fuel consumption nearly doubled",
-    });
-    fuelDays = Math.max(Math.floor(fuelDays * 0.4), 2);
 
     steps.push({
       step: stepNum++,
       domain: "fuel",
-      variable: "Days Until Empty",
-      fromValue: `${before.fuelDays} days`,
-      toValue: `${fuelDays} days`,
-      severity: "critical",
-      description: "Fuel reserves critically low at increased burn rate",
-    });
-    steps.push({
-      step: stepNum++,
-      domain: "habitat",
-      variable: "Crew Safety",
-      fromValue: "Normal operations",
-      toValue: "Emergency shelter",
-      severity: "critical",
-      description: "Crew confined to emergency shelter module",
+      variable: "Specific Fuel Consumption",
+      fromValue: `${baseBurnRate} L/hr`,
+      toValue: `${currentBurnRate} L/hr`,
+      unit: "L/hr",
+      severity: currentBurnRate > 48 ? "CRITICAL" : "WARNING",
+      description: `Fuel burn rate increased by ${currentBurnRate - baseBurnRate} L/hr for thermal compensation.`,
+      explanation: `Thermal boilers and secondary diesel loops firing at sustained maximum duty cycle.`,
+      equation: [
+        `Step ${stepNum - 1}: Heating Fuel Consumption`,
+        `sfc_baseline = ${baseBurnRate} L/hr`,
+        `delta_fuel_burn = ${additionalHeatLoadKW} kW × 0.22 L/kWh = +${(additionalHeatLoadKW * 0.22).toFixed(1)} L/hr`,
+        `total_burn_rate = ${baseBurnRate} + ${(additionalHeatLoadKW * 0.22).toFixed(1)} = ${currentBurnRate} L/hr`,
+      ].join("\n"),
     });
 
-    mitigations.push("Activate all emergency fuel reserves");
-    mitigations.push("Consolidate crew to emergency shelter module");
-    mitigations.push("Reduce heating to minimum safe levels");
-    mitigations.push("Request emergency evacuation if cold persists >48hrs");
+    mitigations.push({
+      priority: tempSeverity === "CRITICAL" ? "CRITICAL" : "HIGH",
+      action: "Seal perimeter vestibules and reroute generator exhaust heat recovery",
+      impact: "Recovers approx 18 kW thermal energy directly into main living module",
+      category: "Thermal",
+    });
   }
 
-  // --- Resupply Delay ---
-  if (input.resupplyDelayDays && input.resupplyDelayDays > 0) {
-    fuelDays = Math.max(fuelDays - input.resupplyDelayDays, 1);
-    foodDays = Math.max(foodDays - input.resupplyDelayDays, 1);
-    waterReserve = Math.max(waterReserve - input.resupplyDelayDays * 2280, 200);
-    overallRisk = worseRisk(overallRisk, "warning");
+  // 3. CREW COUNT & LIFE SUPPORT
+  const deltaCrew = crew - baselineCrew;
+  if (Math.abs(deltaCrew) >= 3) {
+    const waterDemandLPerDay = 65; // per person per day
+    const crewWaterDelta = deltaCrew * waterDemandLPerDay;
+    const daysReduced = Math.round((crew / baselineCrew) * 3);
+    waterReserve = Math.max(1200, waterReserve - deltaCrew * 300);
+    foodDays = Math.max(3, foodDays - (deltaCrew > 0 ? daysReduced : -daysReduced));
+
+    const crewSeverity: RiskLevel = crew > 55 ? "CRITICAL" : crew > 42 ? "WARNING" : "CAUTION";
+    overallRisk = worseRisk(overallRisk, crewSeverity);
+
+    steps.push({
+      step: stepNum++,
+      domain: "water",
+      variable: "Potable Water Consumption",
+      fromValue: `${baselineCrew} personnel`,
+      toValue: `${crew} personnel`,
+      unit: "crew",
+      severity: crewSeverity,
+      description: `Crew size changed by ${deltaCrew > 0 ? `+${deltaCrew}` : deltaCrew} over nominal complement.`,
+      explanation: `Life support water synthesis and sewage reprocessing scales linearly with headcount.`,
+      equation: [
+        `Step ${stepNum - 1}: Crew Demand Scaling`,
+        `per_capita_daily_water = ${waterDemandLPerDay} L/day`,
+        `delta_daily_water = ${deltaCrew} crew × ${waterDemandLPerDay} L = ${crewWaterDelta > 0 ? `+${crewWaterDelta}` : crewWaterDelta} L/day`,
+        `effective_depletion_rate = base_water_demand + (${crewWaterDelta} L/day)`,
+      ].join("\n"),
+    });
+
+    if (crew > baselineCrew) {
+      mitigations.push({
+        priority: "MEDIUM",
+        action: "Activate greywater recycle loop for secondary ablution systems",
+        impact: "Reduces net freshwater consumption rate by 22%",
+        category: "Life Support",
+      });
+    }
+  }
+
+  // 4. SCIENTIFIC LOAD
+  if (sciLoad !== 65) {
+    const deltaSci = sciLoad - 65;
+    const deltaSciKW = Math.round((deltaSci / 100) * 45);
+    const addedLoad = Math.round((deltaSciKW / activeGenCapacity) * 100);
+    currentGenLoad = Math.max(20, Math.min(100, currentGenLoad + addedLoad));
+
+    if (sciLoad > 85) {
+      steps.push({
+        step: stepNum++,
+        domain: "science",
+        variable: "Scientific Research Load",
+        fromValue: "65%",
+        toValue: `${sciLoad}%`,
+        unit: "grid share",
+        severity: "WARNING",
+        description: `High science instrumentation load draws additional ${deltaSciKW} kW from grid.`,
+        explanation: `Cryo-coolers, atmospheric lidars, and radio spectrometers drawing near peak rating.`,
+        equation: [
+          `Step ${stepNum - 1}: Scientific Grid Draw`,
+          `delta_science_pct = ${sciLoad}% - 65% = +${deltaSci}%`,
+          `delta_power = (${deltaSci}% / 100) × 45 kW = +${deltaSciKW} kW`,
+          `total_science_draw = 35 kW (nominal) + ${deltaSciKW} kW = ${35 + deltaSciKW} kW`,
+        ].join("\n"),
+      });
+
+      mitigations.push({
+        priority: "MEDIUM",
+        action: "Schedule batch atmospheric radar sweeps during daytime solar/wind peak",
+        impact: "Flattens nighttime base-load demand spike by 12 kW",
+        category: "Scientific Load",
+      });
+    }
+  }
+
+  // 5. RESUPPLY DELAY & BUFFER MARGIN
+  const baselineResupplyDays = station.nextResupplyDays ?? 35;
+  const newResupplyDays = baselineResupplyDays + delayDays;
+  const resupplyGapDays = Math.max(0, newResupplyDays - fuelDays);
+
+  if (delayDays > 0 || input.failedSubsystem === "resupply_delay") {
+    const delayVal = delayDays > 0 ? delayDays : 14;
+    fuelDays = Math.max(1, fuelDays - Math.round(delayVal * 0.4));
+    foodDays = Math.max(2, foodDays - delayVal);
+    waterReserve = Math.max(800, waterReserve - delayVal * 300);
+
+    const delaySeverity: RiskLevel =
+      resupplyGapDays > 10 || fuelDays < 15 ? "CRITICAL" : "WARNING";
+    overallRisk = worseRisk(overallRisk, delaySeverity);
 
     steps.push({
       step: stepNum++,
       domain: "overall",
-      variable: "Resupply ETA",
-      fromValue: "Scheduled",
-      toValue: `+${input.resupplyDelayDays} days delayed`,
-      severity: "warning",
-      description: "Ship resupply delayed due to sea ice conditions",
+      variable: "Supply Vessel Logistics Buffer",
+      fromValue: `${baselineResupplyDays} days ETA`,
+      toValue: `+${delayVal} days delayed (${newResupplyDays} d)`,
+      unit: "days",
+      severity: delaySeverity,
+      description: `Maritime convoy delayed by pack ice consolidation in Prydz Bay.`,
+      explanation: `Resupply gap exceeds nominal fuel buffer margin. Critical reserves will be tapped.`,
+      equation: [
+        `Step ${stepNum - 1}: Logistics Buffer Degradation`,
+        `original_eta = ${baselineResupplyDays} days, delay = +${delayVal} days → new_eta = ${newResupplyDays} days`,
+        `projected_fuel_days = ${fuelDays} days`,
+        `resupply_gap = new_eta (${newResupplyDays} d) - fuel_reserve (${fuelDays} d) = ${resupplyGapDays} days deficit`,
+      ].join("\n"),
     });
-    steps.push({
-      step: stepNum++,
-      domain: "fuel",
-      variable: "Fuel Days Remaining",
-      fromValue: `${before.fuelDays} days`,
-      toValue: `${fuelDays} days`,
-      severity: fuelDays < 10 ? "critical" : "warning",
-      description: "Fuel reserves shrinking without resupply",
+
+    mitigations.push({
+      priority: delaySeverity === "CRITICAL" ? "CRITICAL" : "HIGH",
+      action: "Issue formal request to Maitri/Bharati inter-station fuel relay protocol",
+      impact: "Secures 15-day emergency airlift buffer via Dornier utility aircraft",
+      category: "Logistics",
     });
+  }
+
+  // 6. FAILURE PRESET HANDLERS FOR /cascade/page.tsx
+  if (input.failedSubsystem === "water_plant") {
+    waterReserve = Math.max(waterReserve - 5000, 800);
+    overallRisk = worseRisk(overallRisk, "CRITICAL");
+
     steps.push({
       step: stepNum++,
       domain: "water",
-      variable: "Water Reserve",
-      fromValue: `${before.waterReserve.toLocaleString()} L`,
-      toValue: `${waterReserve.toLocaleString()} L`,
-      severity: waterReserve < 5000 ? "critical" : "warning",
-      description: "Water reserves depleting without replenishment",
+      variable: "Reverse Osmosis Desalination",
+      fromValue: "2,400 L/day",
+      toValue: "0 L/day (FAULT)",
+      unit: "L/day",
+      severity: "CRITICAL",
+      description: "Water production fully halted due to intake freezing fault.",
+      explanation: "Zero daily output with demand running at 2,280 L/day.",
+      equation: [
+        `Step ${stepNum - 1}: Potable Water Synthesis Failure`,
+        `production_capacity = 0 L/day`,
+        `burn_rate = 2,280 L/day`,
+        `hours_to_storage_exhaustion = (${waterReserve} L / 2,280 L/d) × 24 = ${((waterReserve / 2280) * 24).toFixed(1)} hrs`,
+      ].join("\n"),
     });
+
+    mitigations.push({
+      priority: "CRITICAL",
+      action: "Activate emergency snow melter tank heated by generator manifold",
+      impact: "Restores 1,200 L/day minimum survival water production",
+      category: "Life Support",
+    });
+  }
+
+  if (input.failedSubsystem === "comms") {
+    overallRisk = worseRisk(overallRisk, "WARNING");
+
     steps.push({
       step: stepNum++,
-      domain: "habitat",
-      variable: "Food Supply",
-      fromValue: `${before.foodDays} days`,
-      toValue: `${foodDays} days`,
-      severity: foodDays < 15 ? "critical" : "warning",
-      description: "Food stockpile reduced without resupply",
+      domain: "comms",
+      variable: "Ku/Ka Band Satellite Uplink",
+      fromValue: "Nominal (25 Mbps)",
+      toValue: "0 Mbps (LOS)",
+      unit: "bandwidth",
+      severity: "CRITICAL",
+      description: "Primary parabolic dish tracking drive frozen; tracking lost.",
+      explanation: "Telemetry streaming and voice interconnect with mainland terminated.",
+      equation: [
+        `Step ${stepNum - 1}: Telemetry Downlink Blackout`,
+        `bandwidth = 0 Mbps (down from 25 Mbps Ku-band)`,
+        `packet_loss = 100%`,
+        `failover_latency = 450 ms via low-bandwidth Iridium short-burst data`,
+      ].join("\n"),
     });
 
-    if (fuelDays < 10) {
-      mitigations.push("Implement strict fuel rationing immediately");
-    }
-    if (waterReserve < 5000) {
-      mitigations.push("Deploy water conservation measures");
-    }
-    if (foodDays < 15) {
-      mitigations.push("Reduce crew food rations by 20%");
-    }
-    mitigations.push("Request aerial resupply if sea route blocked");
-    mitigations.push("Contact nearest friendly station for emergency shares");
+    mitigations.push({
+      priority: "HIGH",
+      action: "Switch command telemetry to secondary Iridium satellite terminal",
+      impact: "Restores vital telemetry ping and safety heartbeat channel",
+      category: "Communications",
+    });
   }
 
-  // Ensure we have at least one mitigation
-  if (mitigations.length === 0) {
-    mitigations.push("Monitor situation closely");
-    mitigations.push("Review contingency protocols");
+  // If no steps were triggered (nominal inputs), provide a baseline verification step
+  if (steps.length === 0) {
+    steps.push({
+      step: 1,
+      domain: "overall",
+      variable: "Grid & Life Support State",
+      fromValue: "Nominal",
+      toValue: "Stable",
+      unit: "state",
+      severity: "NOMINAL",
+      description: "Station systems operate within designated operating tolerances.",
+      explanation: "Current ambient temperature and load demand present no immediate risk.",
+      equation: [
+        "Step 1: System Stability Verification",
+        `generator_headroom = 100% - ${currentGenLoad}% = ${100 - currentGenLoad}%`,
+        `fuel_burn_rate = ${currentBurnRate} L/hr (nominal margin = +${fuelDays} days)`,
+        `status = STABLE`,
+      ].join("\n"),
+    });
+
+    mitigations.push({
+      priority: "LOW",
+      action: "Maintain routine 6-hour watch officer inspection rounds",
+      impact: "Continuous verification of nominal operating thresholds",
+      category: "Standard Operations",
+    });
   }
+
+  // Ensure default mitigations if empty
+  if (mitigations.length === 0) {
+    mitigations.push({
+      priority: "LOW",
+      action: "Monitor ongoing resource consumption trends",
+      impact: "Early detection of anomaly drift",
+      category: "Standard Operations",
+    });
+  }
+
+  // Sort mitigations by priority: CRITICAL > HIGH > MEDIUM > LOW
+  const priorityOrder: Record<string, number> = {
+    CRITICAL: 1,
+    HIGH: 2,
+    MEDIUM: 3,
+    LOW: 4,
+  };
+  mitigations.sort(
+    (a, b) => (priorityOrder[a.priority] ?? 99) - (priorityOrder[b.priority] ?? 99)
+  );
 
   const after: StationMetrics = {
     power: powerAvail,
@@ -418,15 +462,38 @@ export function runSimulation(
     waterReserve,
     foodDays,
     riskLevel: overallRisk,
+    generatorLoad: currentGenLoad,
+    fuelBurnRate: currentBurnRate,
   };
 
-  return { steps, before, after, mitigations };
-}
+  const metricsComparison: MetricsComparison = {
+    generatorLoad: {
+      before: baseGeneratorLoad,
+      after: currentGenLoad,
+      unit: "%",
+    },
+    fuelBurnRate: {
+      before: baseBurnRate,
+      after: currentBurnRate,
+      unit: "L/hr",
+    },
+    daysToDepletion: {
+      before: before.fuelDays,
+      after: fuelDays,
+      unit: "days",
+    },
+    resupplyGap: {
+      before: 0,
+      after: resupplyGapDays,
+      unit: "days",
+    },
+  };
 
-export function getMetricDelta(
-  metric: keyof StationMetrics,
-  before: StationMetrics,
-  after: StationMetrics
-): "worse" | "same" | "better" {
-  return metricDelta(metric, before, after);
+  return {
+    steps,
+    before,
+    after,
+    mitigations,
+    metricsComparison,
+  };
 }

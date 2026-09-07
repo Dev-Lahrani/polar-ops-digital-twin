@@ -30,6 +30,13 @@ export interface Station {
   resources: StationResources;
   temperature: number;
   windSpeed: number;
+  generatorLoad?: number;
+  fuelDaysRemaining?: number;
+  waterDaysRemaining?: number;
+  foodDaysRemaining?: number;
+  nextResupplyDays?: number;
+  fuelCurrentL?: number;
+  fuelCapacityL?: number;
   subsystems: Subsystem[];
 }
 
@@ -50,8 +57,11 @@ export interface CascadeStep {
   variable: string;
   fromValue: string;
   toValue: string;
-  severity: RiskLevel;
+  unit?: string;
+  severity: RiskLevel | "info" | "warning" | "critical" | "INFO";
   description: string;
+  explanation?: string;
+  equation?: string;
 }
 
 export interface StationMetrics {
@@ -60,18 +70,39 @@ export interface StationMetrics {
   waterReserve: number;
   foodDays: number;
   riskLevel: RiskLevel;
+  generatorLoad?: number;
+  fuelBurnRate?: number;
+}
+
+export interface Mitigation {
+  id?: string;
+  priority: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+  action: string;
+  impact: string;
+  category: string;
 }
 
 export interface SimulationInput {
+  stationId?: string;
   failedSubsystem?: string;
   generatorsOnline?: number;
   temperatureC?: number;
+  crewCount?: number;
+  scientificLoadPercent?: number;
   resupplyDelayDays?: number;
+}
+
+export interface MetricsComparison {
+  generatorLoad: { before: number; after: number; unit: string };
+  fuelBurnRate: { before: number; after: number; unit: string };
+  daysToDepletion: { before: number; after: number; unit: string };
+  resupplyGap: { before: number; after: number; unit: string };
 }
 
 export interface SimulationResult {
   steps: CascadeStep[];
   before: StationMetrics;
   after: StationMetrics;
-  mitigations: string[];
+  mitigations: (Mitigation | string)[];
+  metricsComparison?: MetricsComparison;
 }

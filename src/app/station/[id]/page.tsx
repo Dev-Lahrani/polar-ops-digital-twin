@@ -7,21 +7,27 @@ import StationSvg from "@/components/station-svg";
 import { RiskLevel } from "@/types";
 
 const statusLabels: Record<RiskLevel, string> = {
-  nominal: "NOMINAL",
-  warning: "WARNING",
-  critical: "CRITICAL",
+  NOMINAL: "NOMINAL",
+  CAUTION: "CAUTION",
+  WARNING: "WARNING",
+  CRITICAL: "CRITICAL",
+  EMERGENCY: "EMERGENCY",
 };
 
 const statusColors: Record<RiskLevel, string> = {
-  nominal: "#3fb950",
-  warning: "#d29922",
-  critical: "#f85149",
+  NOMINAL: "#3fb950",
+  CAUTION: "#eab308",
+  WARNING: "#d29922",
+  CRITICAL: "#f85149",
+  EMERGENCY: "#b91c1c",
 };
 
 const statusBg: Record<RiskLevel, string> = {
-  nominal: "#3fb9501a",
-  warning: "#d299221a",
-  critical: "#f851491a",
+  NOMINAL: "#3fb9501a",
+  CAUTION: "#eab3081a",
+  WARNING: "#d299221a",
+  CRITICAL: "#f851491a",
+  EMERGENCY: "#b91c1c1a",
 };
 
 function GaugeBar({ percent }: { percent: number }) {

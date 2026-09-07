@@ -83,11 +83,13 @@ const CONNECTIONS: Connection[] = [
 
 const statusColor = (status: RiskLevel): string => {
   const map: Record<RiskLevel, string> = {
-    nominal: "#3fb950",
-    warning: "#d29922",
-    critical: "#f85149",
+    NOMINAL: "#3fb950",
+    CAUTION: "#eab308",
+    WARNING: "#d29922",
+    CRITICAL: "#f85149",
+    EMERGENCY: "#b91c1c",
   };
-  return map[status];
+  return map[status] ?? "#3fb950";
 };
 
 export default function StationSvg({
@@ -140,15 +142,19 @@ export default function StationSvg({
       {CONNECTIONS.map((conn) => {
         const fromSub = getSubsystem(conn.from);
         const toSub = getSubsystem(conn.to);
+        const isCritical =
+          fromSub?.status === "CRITICAL" ||
+          toSub?.status === "CRITICAL" ||
+          fromSub?.status === "EMERGENCY" ||
+          toSub?.status === "EMERGENCY";
+        const isWarning =
+          fromSub?.status === "WARNING" ||
+          toSub?.status === "WARNING" ||
+          fromSub?.status === "CAUTION" ||
+          toSub?.status === "CAUTION";
         const color =
           fromSub && toSub
-            ? statusColor(
-                fromSub.status === "critical" || toSub.status === "critical"
-                  ? "critical"
-                  : fromSub.status === "warning" || toSub.status === "warning"
-                  ? "warning"
-                  : "nominal"
-              )
+            ? statusColor(isCritical ? "CRITICAL" : isWarning ? "WARNING" : "NOMINAL")
             : "#58a6ff";
 
         const midX = (conn.fromAnchor.x + conn.toAnchor.x) / 2;
