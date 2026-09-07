@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://images.unsplash.com/photo-1518002171953-a080ee817e1f?auto=format&fit=crop&q=80&w=1200&h=350" alt="Antarctica Banner" style="border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+  
   
   # 🧊 POLAR-OPS
   ### Antarctic Operations Intelligence Platform
@@ -154,7 +154,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to launch 
 <br/>
 
 **Acknowledgements:**
-- **Problem Statement**: Antarctic Station Operations Intelligence — Smart India Hackathon 2025
+- **Problem Statement**: Antarctic Station Operations Intelligence — Smart India Hackathon 2026
 - **Data Sources**: Indian Antarctic Programme published specifications, Antarctic Meteorological Research Center (AMRC).
 
 <br/>
