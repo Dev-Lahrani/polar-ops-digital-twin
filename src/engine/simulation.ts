@@ -144,7 +144,7 @@ export function runSimulation(
   const before = buildBeforeMetrics(station);
 
   // Baselines from Station Model
-  const baselineTemp = station.id === "maitri" ? -32 : -18;
+  const baselineTemp = station.temperature;
   const baselineCrew = station.id === "maitri" ? 25 : 35;
   const maxGenerators = 3;
   const baselineHeatingKW = station.id === "maitri" ? 85.0 : 67.2;

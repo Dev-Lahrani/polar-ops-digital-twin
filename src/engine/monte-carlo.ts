@@ -71,12 +71,12 @@ function simulateOneRun(
   input: SimulationInput,
   config: MonteCarloConfig
 ): number {
-  const tempC = (input.temperatureC ?? (station.id === "maitri" ? -32 : -18))
+  const tempC = (input.temperatureC ?? station.temperature)
     + boxMullerRandom() * config.tempStdDev;
 
   const consumptionMultiplier = 1 + boxMullerRandom() * config.consumptionStdDev;
 
-  const baselineTemp = station.id === "maitri" ? -32 : -18;
+  const baselineTemp = station.temperature;
   const deltaT = Math.max(0, baselineTemp - tempC);
   const thermalCoeff = 0.8;
   const baselineHeating = station.id === "maitri" ? 85.0 : 67.2;
@@ -177,7 +177,7 @@ export function runMonteCarlo(
     for (const delay of delayOptions) {
       const simInput: SimulationInput = {
         ...input,
-        temperatureC: (input.temperatureC ?? (station.id === "maitri" ? -32 : -18)) + tempDev,
+        temperatureC: (input.temperatureC ?? station.temperature) + tempDev,
         resupplyDelayDays: (input.resupplyDelayDays ?? 0) + delay,
       };
       const depletionDaysHeat: number[] = [];

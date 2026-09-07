@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { fetchAndSyncWeather } from "@/engine/weather-sync";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,10 @@ export async function GET(request: Request) {
   const hours = parseInt(searchParams.get("hours") || "24", 10);
 
   try {
+    // 1. Sync real-time weather from Open-Meteo into our DB
+    await fetchAndSyncWeather(stationId);
+
+    // 2. Fetch the updated history
     const since = new Date();
     since.setHours(since.getHours() - hours);
 
