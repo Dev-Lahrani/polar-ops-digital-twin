@@ -77,14 +77,18 @@ An integrated logistics management system combining real-time inventory tracking
 
 ## 3. System Architecture
 
+POLAR-OPS has been upgraded to a **Full-Stack Enterprise Platform**, ensuring that all heavy computations and live data syncs occur securely on the backend. 
+
+[👉 View Full Architecture Documentation](./docs/ARCHITECTURE.md)
+
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                     POLAR-OPS Platform                          │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
-│  │   Frontend   │  │   Engines    │  │   Data Pipeline      │   │
-│  │   (Next.js)  │  │   (Client)   │  │   (Weather + IoT)    │   │
+│  │   Frontend   │  │  Backend API │  │   Data Pipeline      │   │
+│  │ (Next Router)│  │ (Next.js)    │  │ (Open-Meteo / IoT)   │   │
 │  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘   │
 │         │                 │                     │               │
 │         │    ┌────────────┴────────────┐        │               │
@@ -92,15 +96,14 @@ An integrated logistics management system combining real-time inventory tracking
 │         │    │  ├─ Physics Engine      │        │               │
 │         │    │  ├─ Monte Carlo (10K)   │        │               │
 │         │    │  ├─ Weibull/MTBF        │        │               │
-│         │    │  ├─ Cascade Propagation │        │               │
-│         │    │  ├─ MCDA Optimiser      │        │               │
-│         │    │  └─ Weather Pipeline    │        │               │
-│         │    └─────────────────────────┘        │               │
-│         └─────────────────┼─────────────────────┘               │
-│                    ┌──────┴───────┐                             │
-│                    │  Deployment  │                             │
-│                    │  (Vercel)    │                             │
-│                    └──────────────┘                             │
+│         │    │  ├─ AI Copilot          │        │               │
+│         │    │  └─ Weather Sync        │        │               │
+│         │    └────────────┬────────────┘        │               │
+│         │                 v                     │               │
+│         │    ┌─────────────────────────┐        │               │
+│         │    │       Prisma ORM        │<───────┘               │
+│         │    │    (PostgreSQL DB)      │                        │
+│         │    └─────────────────────────┘                        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -108,14 +111,13 @@ An integrated logistics management system combining real-time inventory tracking
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 14 (App Router) |
-| UI | React 18, Tailwind CSS v3, Radix UI |
-| Visualisation | Recharts, SVG (interactive diagrams) |
-| Icons | Lucide React |
-| Simulation | TypeScript (client-side physics, Monte Carlo, Weibull) |
-| Auth | Role-based (localStorage + context) |
-| Offline | Service Worker (cache-first with network fallback) |
-| Deployment | Vercel (serverless, edge network) |
+| **Framework** | Next.js 14 (App Router), Serverless API Routes |
+| **Database** | PostgreSQL, Prisma ORM |
+| **UI** | React 18, Tailwind CSS v3, Radix UI, Recharts |
+| **Simulation** | TypeScript (backend-rendered physics, Monte Carlo, Weibull) |
+| **Auth** | NextAuth (Role-based access: Admin, Engineer, Viewer) |
+| **IoT/Telemetry**| Real-time Open-Meteo API syncing |
+| **Deployment** | Vercel (Edge network) |
 
 ---
 
