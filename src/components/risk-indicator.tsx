@@ -12,39 +12,39 @@ const config: Record<
   { dot: string; bg: string; text: string; pulse: string; glow: string }
 > = {
   NOMINAL: {
-    dot: "bg-emerald-400",
-    bg: "bg-emerald-400/10",
-    text: "text-emerald-400",
+    dot: "bg-[#22c55e]",
+    bg: "bg-[#22c55e]/15",
+    text: "text-[#22c55e]",
     pulse: "animate-pulse",
     glow: "",
   },
   CAUTION: {
-    dot: "bg-yellow-400",
-    bg: "bg-yellow-400/10",
-    text: "text-yellow-400",
+    dot: "bg-[#eab308]",
+    bg: "bg-[#eab308]/15",
+    text: "text-[#eab308]",
     pulse: "animate-pulse",
     glow: "",
   },
   WARNING: {
-    dot: "bg-orange-400",
-    bg: "bg-orange-400/10",
-    text: "text-orange-400",
+    dot: "bg-[#f97316]",
+    bg: "bg-[#f97316]/15",
+    text: "text-[#f97316]",
     pulse: "animate-pulse",
     glow: "",
   },
   CRITICAL: {
-    dot: "bg-red-500",
-    bg: "bg-red-500/10",
-    text: "text-red-400",
+    dot: "bg-[#ef4444]",
+    bg: "bg-[#ef4444]/15",
+    text: "text-[#ef4444]",
     pulse: "animate-[pulse_0.8s_ease-in-out_infinite]",
     glow: "",
   },
   EMERGENCY: {
-    dot: "bg-red-700",
-    bg: "bg-red-700/10",
+    dot: "bg-[#dc2626]",
+    bg: "bg-[#dc2626]/20",
     text: "text-red-400",
     pulse: "animate-[pulse_0.4s_ease-in-out_infinite]",
-    glow: "shadow-[0_0_8px_rgba(239,68,68,0.6)]",
+    glow: "shadow-[0_0_10px_rgba(220,38,38,0.7)]",
   },
 };
 
@@ -55,8 +55,8 @@ const sizes = {
 };
 
 export default function RiskIndicator({ level, size = "md" }: RiskIndicatorProps) {
-  const c = config[level];
-  const s = sizes[size];
+  const c = config[level] || config.NOMINAL;
+  const s = sizes[size] || sizes.md;
 
   return (
     <span

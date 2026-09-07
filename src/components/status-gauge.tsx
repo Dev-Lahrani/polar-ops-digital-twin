@@ -25,18 +25,18 @@ export default function StatusGauge({
 }: StatusGaugeProps) {
   const pct = Math.min((value / max) * 100, 100);
 
-  let barColor = "bg-emerald-400";
+  let barColor = "bg-[#22c55e]";
   if (pct <= criticalThreshold) {
-    barColor = "bg-red-500";
+    barColor = "bg-[#ef4444]";
   } else if (pct <= warningThreshold) {
-    barColor = "bg-amber-400";
+    barColor = "bg-[#f97316]";
   }
 
   let valueColor = "text-white";
   if (pct <= criticalThreshold) {
-    valueColor = "text-red-400";
+    valueColor = "text-[#ef4444]";
   } else if (pct <= warningThreshold) {
-    valueColor = "text-amber-400";
+    valueColor = "text-[#f97316]";
   }
 
   return (

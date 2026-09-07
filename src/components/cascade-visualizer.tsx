@@ -11,27 +11,27 @@ import {
 import { getMetricDelta } from "@/engine/simulation";
 
 const severityColors: Record<string, string> = {
-  NOMINAL: "#3fb950",
+  NOMINAL: "#22c55e",
   CAUTION: "#eab308",
-  WARNING: "#d29922",
-  CRITICAL: "#f85149",
-  EMERGENCY: "#b91c1c",
-  nominal: "#3fb950",
-  warning: "#d29922",
-  critical: "#f85149",
+  WARNING: "#f97316",
+  CRITICAL: "#ef4444",
+  EMERGENCY: "#dc2626",
+  nominal: "#22c55e",
+  warning: "#f97316",
+  critical: "#ef4444",
   info: "#38bdf8",
   INFO: "#38bdf8",
 };
 
 const severityBg: Record<string, string> = {
-  NOMINAL: "#3fb95015",
+  NOMINAL: "#22c55e15",
   CAUTION: "#eab30815",
-  WARNING: "#d2992215",
-  CRITICAL: "#f8514915",
-  EMERGENCY: "#b91c1c15",
-  nominal: "#3fb95015",
-  warning: "#d2992215",
-  critical: "#f8514915",
+  WARNING: "#f9731615",
+  CRITICAL: "#ef444415",
+  EMERGENCY: "#dc262615",
+  nominal: "#22c55e15",
+  warning: "#f9731615",
+  critical: "#ef444415",
   info: "#38bdf815",
   INFO: "#38bdf815",
 };

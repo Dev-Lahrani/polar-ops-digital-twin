@@ -3,19 +3,19 @@
 import { RiskLevel } from "@/types";
 
 const statusColors: Record<RiskLevel, string> = {
-  NOMINAL: "#3fb950",
+  NOMINAL: "#22c55e",
   CAUTION: "#eab308",
-  WARNING: "#d29922",
-  CRITICAL: "#f85149",
-  EMERGENCY: "#b91c1c",
+  WARNING: "#f97316",
+  CRITICAL: "#ef4444",
+  EMERGENCY: "#dc2626",
 };
 
 const statusBg: Record<RiskLevel, string> = {
-  NOMINAL: "#3fb95010",
+  NOMINAL: "#22c55e10",
   CAUTION: "#eab30810",
-  WARNING: "#d2992210",
-  CRITICAL: "#f8514910",
-  EMERGENCY: "#b91c1c10",
+  WARNING: "#f9731610",
+  CRITICAL: "#ef444410",
+  EMERGENCY: "#dc262610",
 };
 
 function getStatus(daysRemaining: number): RiskLevel {

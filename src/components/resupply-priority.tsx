@@ -4,17 +4,17 @@ import { useState, useEffect } from "react";
 import { ResupplyItem, PriorityLevel } from "@/types";
 
 const priorityColors: Record<PriorityLevel, string> = {
-  CRITICAL: "#f85149",
-  HIGH: "#f0883e",
-  MEDIUM: "#d29922",
-  LOW: "#3fb950",
+  CRITICAL: "#ef4444",
+  HIGH: "#f97316",
+  MEDIUM: "#eab308",
+  LOW: "#22c55e",
 };
 
 const priorityBg: Record<PriorityLevel, string> = {
-  CRITICAL: "#f8514915",
-  HIGH: "#f0883e15",
-  MEDIUM: "#d2992215",
-  LOW: "#3fb95015",
+  CRITICAL: "#ef444415",
+  HIGH: "#f9731615",
+  MEDIUM: "#eab30815",
+  LOW: "#22c55e15",
 };
 
 function PriorityBar({ score, animate }: { score: number; animate: boolean }) {
@@ -30,12 +30,12 @@ function PriorityBar({ score, animate }: { score: number; animate: boolean }) {
 
   const color =
     score >= 0.8
-      ? "#f85149"
+      ? "#ef4444"
       : score >= 0.55
-      ? "#f0883e"
+      ? "#f97316"
       : score >= 0.3
-      ? "#d29922"
-      : "#3fb950";
+      ? "#eab308"
+      : "#22c55e";
 
   return (
     <div className="w-full h-3 bg-[#21262d] rounded-full overflow-hidden">
