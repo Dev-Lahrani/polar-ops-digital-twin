@@ -19,3 +19,46 @@ export interface Station {
   established: number;
   subsystems: Subsystem[];
 }
+
+export type Domain =
+  | "power"
+  | "climate"
+  | "water"
+  | "comms"
+  | "fuel"
+  | "habitat"
+  | "science"
+  | "safety"
+  | "overall";
+
+export interface CascadeStep {
+  step: number;
+  domain: Domain;
+  variable: string;
+  fromValue: string;
+  toValue: string;
+  severity: RiskLevel;
+  description: string;
+}
+
+export interface StationMetrics {
+  power: number;
+  fuelDays: number;
+  waterReserve: number;
+  foodDays: number;
+  riskLevel: RiskLevel;
+}
+
+export interface SimulationInput {
+  failedSubsystem?: string;
+  generatorsOnline?: number;
+  temperatureC?: number;
+  resupplyDelayDays?: number;
+}
+
+export interface SimulationResult {
+  steps: CascadeStep[];
+  before: StationMetrics;
+  after: StationMetrics;
+  mitigations: string[];
+}

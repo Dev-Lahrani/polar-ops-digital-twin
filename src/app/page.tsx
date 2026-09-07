@@ -13,7 +13,7 @@ export default function Home() {
       <p className="text-[#8b949e] mb-10 text-center max-w-md">
         Digital Twin for Indian Antarctic Research Stations
       </p>
-      <div className="flex gap-6">
+      <div className="flex gap-6 mb-8">
         {stations.map((station) => (
           <Link
             key={station.id}
@@ -45,6 +45,18 @@ export default function Home() {
           </Link>
         ))}
       </div>
+      <Link
+        href="/cascade"
+        className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border text-sm font-bold uppercase tracking-wider transition-colors hover:border-[#f85149] hover:text-[#f85149]"
+        style={{
+          borderColor: "#30363d",
+          background: "#161b22",
+          color: "#8b949e",
+        }}
+      >
+        <span>⚠️</span>
+        Failure Cascade Simulator
+      </Link>
     </div>
   );
 }

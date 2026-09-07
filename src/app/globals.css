@@ -53,3 +53,33 @@ body {
 .subsystem-node.selected {
   filter: drop-shadow(0 0 10px var(--accent));
 }
+
+@keyframes flash-critical {
+  0% { box-shadow: inset 0 0 60px #f8514900; }
+  20% { box-shadow: inset 0 0 60px #f8514940; }
+  100% { box-shadow: inset 0 0 60px #f8514900; }
+}
+
+@keyframes flash-warning {
+  0% { box-shadow: inset 0 0 60px #d2992200; }
+  20% { box-shadow: inset 0 0 60px #d2992240; }
+  100% { box-shadow: inset 0 0 60px #d2992200; }
+}
+
+@keyframes flash-nominal {
+  0% { box-shadow: inset 0 0 60px #3fb95000; }
+  20% { box-shadow: inset 0 0 60px #3fb95040; }
+  100% { box-shadow: inset 0 0 60px #3fb95000; }
+}
+
+.flash-critical {
+  animation: flash-critical 1.5s ease-out;
+}
+
+.flash-warning {
+  animation: flash-warning 1.5s ease-out;
+}
+
+.flash-nominal {
+  animation: flash-nominal 1.5s ease-out;
+}
