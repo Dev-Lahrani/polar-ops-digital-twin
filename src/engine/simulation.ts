@@ -7,6 +7,7 @@ import {
   RiskLevel,
   Mitigation,
   MetricsComparison,
+  ResourceTimelinePoint,
 } from "@/types";
 
 function riskRank(r: RiskLevel | string): number {
@@ -69,6 +70,62 @@ function buildBeforeMetrics(station: Station): StationMetrics {
     generatorLoad: station.generatorLoad ?? (gen ? gen.loadPercent : 60),
     fuelBurnRate: station.id === "maitri" ? 45 : 30,
   };
+}
+
+function getResourceCapacity(station: Station) {
+  const fuel = station.subsystems.find((s) => s.id === "fuel");
+  const water = station.subsystems.find((s) => s.id === "water");
+
+  const fuelCapacity =
+    station.fuelCapacityL ??
+    (fuel
+      ? parseInt((fuel.details["Capacity"] ?? "50000").replace(/,/g, ""), 10)
+      : 50000);
+  const fuelCurrent =
+    station.fuelCurrentL ??
+    (fuel
+      ? parseInt((fuel.details["Current"] ?? "27000").replace(/,/g, ""), 10)
+      : 27000);
+  const waterCapacity = 20000;
+  const waterCurrent = water
+    ? parseInt((water.details["Reserve"] ?? "10000").replace(/,/g, ""), 10)
+    : 10000;
+
+  return { fuelCapacity, fuelCurrent, waterCapacity, waterCurrent };
+}
+
+function generateTimeline(
+  station: Station,
+  fuelDays: number,
+  waterReserve: number,
+  foodDays: number
+): ResourceTimelinePoint[] {
+  const { fuelCapacity, fuelCurrent, waterCapacity, waterCurrent } =
+    getResourceCapacity(station);
+  const foodCapacity = 3000;
+  const foodCurrent = Math.round((foodDays / 90) * foodCapacity);
+
+  const dailyFuelBurn = fuelCapacity / Math.max(fuelDays, 1);
+  const dailyWaterUse = waterCurrent / Math.max(fuelDays, 1);
+  const dailyFoodUse = foodCurrent / Math.max(foodDays, 1);
+
+  const timeline: ResourceTimelinePoint[] = [];
+  for (let day = 0; day <= 90; day++) {
+    const fuelLitres = Math.max(0, fuelCurrent - dailyFuelBurn * day);
+    const waterLitres = Math.max(0, waterCurrent - dailyWaterUse * day);
+    const foodKg = Math.max(0, foodCurrent - dailyFoodUse * day);
+
+    timeline.push({
+      day,
+      fuelPct: Math.round((fuelLitres / fuelCapacity) * 100),
+      waterPct: Math.round((waterLitres / waterCapacity) * 100),
+      foodPct: Math.round((foodKg / foodCapacity) * 100),
+      fuelLitres: Math.round(fuelLitres),
+      waterLitres: Math.round(waterLitres),
+      foodKg: Math.round(foodKg),
+    });
+  }
+  return timeline;
 }
 
 export function runSimulation(
@@ -179,7 +236,7 @@ export function runSimulation(
     const additionalHeatLoadKW = Math.round(deltaT * heatKiloWattsPerDeg);
     const addedGenLoad = Math.round((additionalHeatLoadKW / activeGenCapacity) * 100);
     currentGenLoad = Math.min(100, currentGenLoad + addedGenLoad);
-    currentBurnRate = Math.round(currentBurnRate + (additionalHeatLoadKW * 0.22));
+    currentBurnRate = Math.round(currentBurnRate + additionalHeatLoadKW * 0.22);
     const fuelDaysDrop = Math.max(1, Math.round((deltaT / 10) * 4));
     fuelDays = Math.max(2, fuelDays - fuelDaysDrop);
 
@@ -240,7 +297,8 @@ export function runSimulation(
     waterReserve = Math.max(1200, waterReserve - deltaCrew * 300);
     foodDays = Math.max(3, foodDays - (deltaCrew > 0 ? daysReduced : -daysReduced));
 
-    const crewSeverity: RiskLevel = crew > 55 ? "CRITICAL" : crew > 42 ? "WARNING" : "CAUTION";
+    const crewSeverity: RiskLevel =
+      crew > 55 ? "CRITICAL" : crew > 42 ? "WARNING" : "CAUTION";
     overallRisk = worseRisk(overallRisk, crewSeverity);
 
     steps.push({
@@ -489,11 +547,22 @@ export function runSimulation(
     },
   };
 
+  const resourceTimeline = generateTimeline(
+    station,
+    fuelDays,
+    waterReserve,
+    foodDays
+  );
+
+  const nextResupplyDay = station.nextResupplyDays ?? 30;
+
   return {
     steps,
     before,
     after,
     mitigations,
     metricsComparison,
+    resourceTimeline,
+    nextResupplyDay,
   };
 }

@@ -99,10 +99,37 @@ export interface MetricsComparison {
   resupplyGap: { before: number; after: number; unit: string };
 }
 
+export interface ResourceTimelinePoint {
+  day: number;
+  fuelPct: number;
+  waterPct: number;
+  foodPct: number;
+  fuelLitres: number;
+  waterLitres: number;
+  foodKg: number;
+}
+
 export interface SimulationResult {
   steps: CascadeStep[];
   before: StationMetrics;
   after: StationMetrics;
   mitigations: (Mitigation | string)[];
   metricsComparison?: MetricsComparison;
+  resourceTimeline: ResourceTimelinePoint[];
+  nextResupplyDay: number;
+}
+
+export type PriorityLevel = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+
+export interface ResupplyItem {
+  id: string;
+  name: string;
+  currentAmount: number;
+  requiredAmount: number;
+  unit: string;
+  priorityScore: number;
+  priorityLevel: PriorityLevel;
+  rationale: string;
+  icon: string;
+  weightKg: number;
 }

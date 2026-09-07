@@ -1,100 +1,274 @@
 "use client";
 
-import { BarChart3, Database, HardDrive, Droplets, Flame, Cpu } from "lucide-react";
-import { stations } from "@/data/stations";
-import StatusGauge from "@/components/status-gauge";
+import { useState, useMemo } from "react";
+import { getStation } from "@/data/stations";
+import { runSimulation } from "@/engine/simulation";
+import { SimulationResult, ResourceTimelinePoint } from "@/types";
+import ResourceCard from "@/components/resource-card";
+import DepletionChart from "@/components/depletion-chart";
 
 export default function ResourcesPage() {
+  const [activeStation, setActiveStation] = useState<"maitri" | "bharati">(
+    "maitri"
+  );
+  const [showComparison, setShowComparison] = useState(false);
+
+  const station = getStation(activeStation);
+
+  const result = useMemo(() => {
+    if (!station) return null;
+    return runSimulation(station, {});
+  }, [station]);
+
+  const comparisonResult = useMemo(() => {
+    if (!station || !showComparison) return null;
+    return runSimulation(station, {
+      temperatureC: -30,
+      resupplyDelayDays: 7,
+    });
+  }, [station, showComparison]);
+
+  if (!station || !result) return null;
+
+  const fuel = station.subsystems.find((s) => s.id === "fuel");
+  const water = station.subsystems.find((s) => s.id === "water");
+
+  const fuelCurrent = fuel
+    ? parseInt((fuel.details["Current"] ?? "27000").replace(/,/g, ""), 10)
+    : 27000;
+  const fuelCapacity = fuel
+    ? parseInt((fuel.details["Capacity"] ?? "50000").replace(/,/g, ""), 10)
+    : 50000;
+  const waterReserve = water
+    ? parseInt((water.details["Reserve"] ?? "10000").replace(/,/g, ""), 10)
+    : 10000;
+
+  const resourceCards = [
+    {
+      icon: "⛽",
+      name: "Fuel",
+      currentAmount: fuelCurrent.toLocaleString(),
+      unit: "L",
+      percent: Math.round((fuelCurrent / fuelCapacity) * 100),
+      dailyRate: "1,080 L/day",
+      daysRemaining: result.after.fuelDays,
+    },
+    {
+      icon: "💧",
+      name: "Water",
+      currentAmount: waterReserve.toLocaleString(),
+      unit: "L",
+      percent: Math.round((waterReserve / 20000) * 100),
+      dailyRate: "2,280 L/day",
+      daysRemaining: Math.round(waterReserve / 2280),
+    },
+    {
+      icon: "🍽️",
+      name: "Food",
+      currentAmount: "1,350",
+      unit: "kg",
+      percent: 45,
+      dailyRate: "30 kg/day",
+      daysRemaining: result.after.foodDays,
+    },
+    {
+      icon: "🏥",
+      name: "Medical",
+      currentAmount: "82",
+      unit: "units",
+      percent: 82,
+      dailyRate: "~0.5 units/day",
+      daysRemaining: 164,
+    },
+  ];
+
+  const tableRows = [
+    {
+      resource: "Fuel",
+      current: `${fuelCurrent.toLocaleString()} L`,
+      dailyUse: "1,080 L/day",
+      daysLeft: result.after.fuelDays,
+      gapToResupply: result.after.fuelDays - result.nextResupplyDay,
+    },
+    {
+      resource: "Water",
+      current: `${waterReserve.toLocaleString()} L`,
+      dailyUse: "2,280 L/day",
+      daysLeft: Math.round(waterReserve / 2280),
+      gapToResupply: Math.round(waterReserve / 2280) - result.nextResupplyDay,
+    },
+    {
+      resource: "Food",
+      current: "1,350 kg",
+      dailyUse: "30 kg/day",
+      daysLeft: result.after.foodDays,
+      gapToResupply: result.after.foodDays - result.nextResupplyDay,
+    },
+    {
+      resource: "Medical",
+      current: "82 units",
+      dailyUse: "~0.5 units/day",
+      daysLeft: 164,
+      gapToResupply: 164 - result.nextResupplyDay,
+    },
+  ];
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto font-mono">
-      {/* Header */}
-      <div className="rounded-2xl border border-[#1e293b] bg-gradient-to-r from-[#0c1322] via-[#0f172a] to-[#0c1322] p-6 shadow-xl">
-        <div className="flex items-center gap-2 mb-1.5">
-          <span className="flex h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-          <span className="text-[10px] font-bold tracking-widest uppercase text-cyan-400">
-            STRATEGIC RESOURCE INTELLIGENCE
-          </span>
-        </div>
-        <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white uppercase flex items-center gap-2.5">
-          <BarChart3 className="h-7 w-7 text-cyan-400" />
-          Resource Intelligence
+    <div className="min-h-screen p-6 max-w-7xl mx-auto">
+      <header className="mb-8">
+        <h1
+          className="text-2xl font-bold tracking-wider"
+          style={{ color: "#58a6ff" }}
+        >
+          RESOURCE INTELLIGENCE
         </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Longitudinal consumption telemetry, storage depletion vectors, and synthesis tracking
+        <p className="text-sm text-[#8b949e] mt-1">
+          Depletion forecasts and supply chain monitoring
         </p>
+      </header>
+
+      {/* Station selector + comparison toggle */}
+      <div className="flex items-center justify-between mb-8">
+        <div
+          className="flex gap-1 p-1 rounded-lg"
+          style={{ background: "#161b22" }}
+        >
+          {(["maitri", "bharati"] as const).map((id) => (
+            <button
+              key={id}
+              onClick={() => setActiveStation(id)}
+              className="px-6 py-2 rounded-md text-sm font-bold uppercase tracking-wider transition-all"
+              style={{
+                background: activeStation === id ? "#1a2332" : "transparent",
+                color: activeStation === id ? "#58a6ff" : "#8b949e",
+                border:
+                  activeStation === id
+                    ? "1px solid #58a6ff40"
+                    : "1px solid transparent",
+              }}
+            >
+              {id === "maitri" ? "Maitri" : "Bharati"}
+            </button>
+          ))}
+        </div>
+
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showComparison}
+            onChange={(e) => setShowComparison(e.target.checked)}
+            className="w-4 h-4 accent-[#58a6ff]"
+          />
+          <span className="text-xs text-[#8b949e]">
+            Show worst-case scenario (temp=-30°C, +7 day delay)
+          </span>
+        </label>
       </div>
 
-      {/* Station Resource Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {stations.map((st) => (
-          <div
-            key={st.id}
-            className="rounded-2xl border border-[#1e293b] bg-[#090e1a] p-6 space-y-4 shadow-xl"
-          >
-            <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
-              <h2 className="text-base font-bold text-white uppercase tracking-wider">
-                {st.name} Telemetry Allocation
-              </h2>
-              <span className="text-[10px] text-cyan-400 uppercase font-semibold bg-cyan-950/60 border border-cyan-800/40 px-2 py-0.5 rounded">
-                Real-time feed
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <StatusGauge
-                label="Power Grid"
-                value={st.resources.power}
-                max={100}
-                unit="%"
-                warningThreshold={60}
-                criticalThreshold={40}
-                icon={Cpu}
-              />
-              <StatusGauge
-                label="Fuel Stores"
-                value={st.fuelCurrentL ?? 35000}
-                max={st.fuelCapacityL ?? 60000}
-                unit="L"
-                warningThreshold={40}
-                criticalThreshold={25}
-                icon={Flame}
-              />
-              <StatusGauge
-                label="Freshwater"
-                value={st.resources.water}
-                max={100}
-                unit="%"
-                warningThreshold={40}
-                criticalThreshold={20}
-                icon={Droplets}
-              />
-              <StatusGauge
-                label="Provisions"
-                value={st.resources.food}
-                max={100}
-                unit="%"
-                warningThreshold={50}
-                criticalThreshold={25}
-                icon={HardDrive}
-              />
-            </div>
-
-            <div className="rounded-xl border border-[#1e293b] bg-[#0d1424] p-3 text-xs text-slate-400 space-y-1">
-              <div className="flex justify-between">
-                <span>Estimated Fuel Depletion Horizon:</span>
-                <span className="font-bold text-white">{st.fuelDaysRemaining} days</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Water Filtration Demand Margin:</span>
-                <span className="font-bold text-white">{st.waterDaysRemaining} days</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Next Scheduled Resupply Window:</span>
-                <span className="font-bold text-cyan-400">{st.nextResupplyDays} days</span>
-              </div>
-            </div>
-          </div>
+      {/* Resource cards grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {resourceCards.map((card) => (
+          <ResourceCard key={card.name} {...card} />
         ))}
+      </div>
+
+      {/* Depletion chart */}
+      <div className="mb-8">
+        <DepletionChart
+          data={result.resourceTimeline}
+          resupplyDay={result.nextResupplyDay}
+          title="90-Day Depletion Forecast"
+          comparisonData={comparisonResult?.resourceTimeline}
+        />
+      </div>
+
+      {/* Resource comparison table */}
+      <div
+        className="rounded-lg border overflow-hidden"
+        style={{ borderColor: "#30363d", background: "#161b22" }}
+      >
+        <div className="p-4" style={{ borderBottom: "1px solid #30363d" }}>
+          <h3 className="text-sm font-bold text-[#8b949e] uppercase tracking-wider">
+            Resource Status Table
+          </h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ borderBottom: "1px solid #30363d" }}>
+                {[
+                  "Resource",
+                  "Current",
+                  "Daily Use",
+                  "Days Left",
+                  "Status",
+                  "Gap to Resupply",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="px-4 py-3 text-left text-xs font-bold text-[#8b949e] uppercase tracking-wider"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((row) => {
+                const status =
+                  row.daysLeft <= 7
+                    ? "critical"
+                    : row.daysLeft <= 21
+                    ? "warning"
+                    : "nominal";
+                const statusColor =
+                  status === "critical"
+                    ? "#f85149"
+                    : status === "warning"
+                    ? "#d29922"
+                    : "#3fb950";
+                const gapColor =
+                  row.gapToResupply < 0 ? "#f85149" : "#3fb950";
+                const gapPrefix = row.gapToResupply >= 0 ? "+" : "";
+
+                return (
+                  <tr
+                    key={row.resource}
+                    style={{ borderBottom: "1px solid #21262d" }}
+                  >
+                    <td className="px-4 py-3 font-bold text-[#e6edf3]">
+                      {row.resource}
+                    </td>
+                    <td className="px-4 py-3 text-[#e6edf3] font-mono">
+                      {row.current}
+                    </td>
+                    <td className="px-4 py-3 text-[#8b949e] font-mono">
+                      {row.dailyUse}
+                    </td>
+                    <td className="px-4 py-3 font-mono font-bold" style={{ color: statusColor }}>
+                      {row.daysLeft}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                        style={{
+                          backgroundColor: `${statusColor}20`,
+                          color: statusColor,
+                          border: `1px solid ${statusColor}40`,
+                        }}
+                      >
+                        {status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-mono font-bold" style={{ color: gapColor }}>
+                      {gapPrefix}{row.gapToResupply} days
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
