@@ -1,19 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/components/auth-provider";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Radio, AlertTriangle } from "lucide-react";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = login(email, password);
-    if (!success) setError(true);
+    setLoading(true);
+    setError(false);
+
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    if (result?.error) {
+      setError(true);
+      setLoading(false);
+    } else {
+      router.push("/");
+    }
   };
 
   return (
@@ -72,9 +87,10 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full rounded bg-[#7d9154] px-4 py-2.5 text-xs font-bold tracking-widest uppercase text-[#0b100b] hover:bg-[#8da364] transition-colors"
+            disabled={loading}
+            className="w-full rounded bg-[#7d9154] px-4 py-2.5 text-xs font-bold tracking-widest uppercase text-[#0b100b] hover:bg-[#8da364] transition-colors disabled:opacity-50"
           >
-            Authenticate
+            {loading ? "Authenticating..." : "Authenticate"}
           </button>
         </form>
 

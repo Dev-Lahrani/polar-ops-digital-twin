@@ -1,11 +1,20 @@
 "use client";
 
-import { useMemo } from "react";
-import { analyzeReliability } from "@/engine/weibull";
+import { usePredictiveAnalysis, PredictiveComponent, MaintenanceEntry } from "@/hooks/use-api";
 import { AlertTriangle, CheckCircle, Clock, TrendingDown, TrendingUp, Minus } from "lucide-react";
 
 export default function PredictiveMaintenancePage() {
-  const result = useMemo(() => analyzeReliability(), []);
+  const { analysis: result, isLoading } = usePredictiveAnalysis();
+
+  if (isLoading || !result) {
+    return (
+      <div className="min-h-screen bg-[#0b100b] p-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-center h-64">
+          <div className="text-[#5a6b48] font-mono text-sm">Loading predictive analysis...</div>
+        </div>
+      </div>
+    );
+  }
 
   const getRiskColor = (level: string) => {
     switch (level) {

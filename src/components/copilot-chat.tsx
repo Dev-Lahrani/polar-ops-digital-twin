@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Station } from "@/types";
-import { processQuery, getSuggestedQueries } from "@/engine/copilot";
+import { sendCopilotQuery } from "@/hooks/use-api";
 import { Bot, Send, Lightbulb, AlertTriangle, Info, Zap } from "lucide-react";
 
 interface Message {
@@ -20,12 +20,20 @@ interface CopilotChatProps {
   station: Station;
 }
 
+const SUGGESTED_QUERIES = [
+  "What's our fuel status?",
+  "Why is the generator load so high?",
+  "Water treatment status?",
+  "When is the next resupply?",
+  "Current weather conditions?",
+  "Give me a full station status report",
+];
+
 export default function CopilotChat({ station }: CopilotChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const suggested = getSuggestedQueries(station);
 
   useEffect(() => {
     if (messages.length === 0) {
@@ -57,9 +65,7 @@ export default function CopilotChat({ station }: CopilotChatProps) {
     setInput("");
     setIsProcessing(true);
 
-    await new Promise(r => setTimeout(r, 300 + Math.random() * 400));
-
-    const response = processQuery(station, text);
+    const response = await sendCopilotQuery(text, station.id);
 
     const assistantMsg: Message = {
       id: `assistant-${Date.now()}`,
@@ -178,7 +184,7 @@ export default function CopilotChat({ station }: CopilotChatProps) {
             <span className="text-[10px] font-mono text-slate-500">SUGGESTED</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {suggested.slice(0, 4).map((q, i) => (
+            {SUGGESTED_QUERIES.slice(0, 4).map((q: string, i: number) => (
               <button
                 key={i}
                 onClick={() => handleSend(q)}

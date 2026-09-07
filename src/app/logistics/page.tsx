@@ -12,7 +12,7 @@ import {
 import {
   InventoryItem, CargoManifest, VesselSchedule, SeaIceData, MCDAInput, MCDAOutput, Alert,
 } from "@/types";
-import { useAuth } from "@/components/auth-provider";
+import { useSession } from "next-auth/react";
 
 const PRIORITY_COLORS = { CRITICAL: "#ef4444", HIGH: "#f59e0b", MEDIUM: "#3b82f6", LOW: "#6b7280" };
 
@@ -94,7 +94,8 @@ const STATUS_BG: Record<string, string> = {
 };
 
 export default function LogisticsPage() {
-  const { user } = useAuth();
+  const { data: session } = useSession();
+  const user = session?.user;
   const [activeTab, setActiveTab] = useState<"inventory" | "cargo" | "vessels" | "alerts">("inventory");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
@@ -149,7 +150,7 @@ export default function LogisticsPage() {
               <span className="text-[10px] font-mono text-amber-400">{activeAlerts.length} ACTIVE</span>
             </div>
           )}
-          {user?.role === "admin" && (
+          {user?.role === "ADMIN" && (
             <button className="flex items-center gap-1.5 rounded bg-[#7d9154]/20 border border-[#7d9154]/30 px-3 py-1.5 text-[10px] font-mono text-[#7d9154] hover:bg-[#7d9154]/30 transition-colors">
               <Download className="h-3 w-3" />
               EXPORT MANIFEST

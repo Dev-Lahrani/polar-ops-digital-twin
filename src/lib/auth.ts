@@ -1,44 +1,73 @@
-import { AuthUser, AuthRole } from "@/types";
+import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import bcrypt from "bcryptjs";
+import { db } from "./db";
 
-const DEMO_USERS: (AuthUser & { password: string })[] = [
-  { id: "1", name: "Station Commander", email: "commander@maitri.gov.in", password: "maitri2026", role: "admin", station: "maitri" },
-  { id: "2", name: "Operations Engineer", email: "ops@bharati.gov.in", password: "bharati2026", role: "engineer", station: "bharati" },
-  { id: "3", name: "Mission Viewer", email: "viewer@ncpor.gov.in", password: "viewer2026", role: "viewer", station: "maitri" },
-];
+export const { handlers, signIn, signOut, auth } = NextAuth({
+  adapter: PrismaAdapter(db),
+  session: { strategy: "jwt" },
+  pages: {
+    signIn: "/login",
+  },
+  providers: [
+    Credentials({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
 
-export function authenticateUser(email: string, password: string): AuthUser | null {
-  const user = DEMO_USERS.find((u) => u.email === email && u.password === password);
-  if (!user) return null;
-  const { password: _, ...authUser } = user;
-  return authUser;
-}
+        const user = await db.user.findUnique({
+          where: { email: credentials.email as string },
+        });
 
-export function getStoredUser(): AuthUser | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem("polar_ops_user");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
+        if (!user) return null;
 
-export function storeUser(user: AuthUser): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem("polar_ops_user", JSON.stringify(user));
-}
+        const isValid = await bcrypt.compare(
+          credentials.password as string,
+          user.passwordHash
+        );
 
-export function clearUser(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem("polar_ops_user");
-}
+        if (!isValid) return null;
 
-export const ROLE_PERMISSIONS: Record<AuthRole, string[]> = {
-  admin: ["read", "write", "simulate", "approve-resupply", "manage-crew", "export"],
-  engineer: ["read", "write", "simulate"],
-  viewer: ["read"],
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        };
+      },
+    }),
+  ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = (user as any).role;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        (session.user as any).id = token.sub;
+        (session.user as any).role = token.role;
+      }
+      return session;
+    },
+  },
+});
+
+export type SessionUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: "ADMIN" | "ENGINEER" | "VIEWER";
 };
 
-export function hasPermission(role: AuthRole, permission: string): boolean {
-  return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+export async function getSessionUser(): Promise<SessionUser | null> {
+  const session = await auth();
+  if (!session?.user) return null;
+  return session.user as SessionUser;
 }

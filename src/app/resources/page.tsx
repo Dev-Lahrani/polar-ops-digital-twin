@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { getStation } from "@/data/stations";
-import { runSimulation } from "@/engine/simulation";
-import { runMonteCarlo } from "@/engine/monte-carlo";
+import { useState, useEffect } from "react";
+import { useStation, runSimulation, runMonteCarlo } from "@/hooks/use-api";
 import { SimulationResult, ResourceTimelinePoint, MonteCarloResult } from "@/types";
 import ResourceCard from "@/components/resource-card";
 import DepletionChart from "@/components/depletion-chart";
@@ -69,44 +67,53 @@ export default function ResourcesPage() {
   );
   const [showComparison, setShowComparison] = useState(false);
 
-  const station = getStation(activeStation);
+  const { station, isLoading: stationLoading } = useStation(activeStation);
 
-  const result = useMemo(() => {
-    if (!station) return null;
-    return runSimulation(station, {});
-  }, [station]);
+  const [result, setResult] = useState<SimulationResult | null>(null);
+  const [comparisonResult, setComparisonResult] = useState<SimulationResult | null>(null);
+  const [mcResult, setMcResult] = useState<MonteCarloResult | null>(null);
 
-  const comparisonResult = useMemo(() => {
-    if (!station || !showComparison) return null;
-    return runSimulation(station, {
+  // Fetch simulation results asynchronously
+  useEffect(() => {
+    if (!station) return;
+    setResult(null);
+    runSimulation(activeStation, {}).then(setResult);
+  }, [station, activeStation]);
+
+  // Fetch comparison results asynchronously
+  useEffect(() => {
+    if (!station || !showComparison) {
+      setComparisonResult(null);
+      return;
+    }
+    runSimulation(activeStation, {
       temperatureC: -30,
       resupplyDelayDays: 7,
-    });
-  }, [station, showComparison]);
+    }).then(setComparisonResult);
+  }, [station, activeStation, showComparison]);
 
-  const mcResult = useMemo(() => {
-    if (!station) return null;
-    return runMonteCarlo(station, {});
-  }, [station]);
+  // Fetch Monte Carlo results asynchronously
+  useEffect(() => {
+    if (!station) return;
+    setMcResult(null);
+    runMonteCarlo(activeStation, {}).then(setMcResult);
+  }, [station, activeStation]);
 
-  if (!station || !result) return null;
+  if (stationLoading || !station || !result) return null;
 
-  const fuel = station.subsystems.find((s) => s.id === "fuel");
-  const water = station.subsystems.find((s) => s.id === "water");
+  const fuel = station.subsystems.find((s: Record<string, unknown>) => (s.subsystemId as string) === "fuel");
+  const water = station.subsystems.find((s: Record<string, unknown>) => (s.subsystemId as string) === "water");
 
-  const fuelCurrent = fuel
-    ? parseInt((fuel.details["Current"] ?? "27000").replace(/,/g, ""), 10)
-    : 27000;
-  const fuelCapacity = fuel
-    ? parseInt((fuel.details["Capacity"] ?? "50000").replace(/,/g, ""), 10)
-    : 50000;
-  const waterReserve = water
-    ? parseInt((water.details["Reserve"] ?? "10000").replace(/,/g, ""), 10)
-    : 10000;
+  const fuelDetails = (fuel?.details ?? {}) as Record<string, string>;
+  const waterDetails = (water?.details ?? {}) as Record<string, string>;
+
+  const fuelCurrent = parseInt((fuelDetails["Current"] ?? "27000").replace(/,/g, ""), 10);
+  const fuelCapacity = parseInt((fuelDetails["Capacity"] ?? "50000").replace(/,/g, ""), 10);
+  const waterReserve = parseInt((waterDetails["Reserve"] ?? "10000").replace(/,/g, ""), 10);
 
   const resourceCards = [
     {
-      icon: "⛽",
+      icon: "\u26FD",
       name: "Fuel",
       currentAmount: fuelCurrent.toLocaleString(),
       unit: "L",
@@ -115,7 +122,7 @@ export default function ResourcesPage() {
       daysRemaining: result.after.fuelDays,
     },
     {
-      icon: "💧",
+      icon: "\uD83D\uDCA7",
       name: "Water",
       currentAmount: waterReserve.toLocaleString(),
       unit: "L",
@@ -124,7 +131,7 @@ export default function ResourcesPage() {
       daysRemaining: Math.round(waterReserve / 2280),
     },
     {
-      icon: "🍽️",
+      icon: "\uD83C\uDF7D\uFE0F",
       name: "Food",
       currentAmount: "1,350",
       unit: "kg",
@@ -133,7 +140,7 @@ export default function ResourcesPage() {
       daysRemaining: result.after.foodDays,
     },
     {
-      icon: "🏥",
+      icon: "\uD83C\uDFE5",
       name: "Medical",
       currentAmount: "82",
       unit: "units",
@@ -211,7 +218,7 @@ export default function ResourcesPage() {
             className="w-4 h-4 accent-[#7d9154]"
           />
           <span className="text-xs text-[#7c8b65] font-mono">
-            Show worst-case scenario (temp=-30°C, +7 day delay)
+            Show worst-case scenario (temp=-30\u00B0C, +7 day delay)
           </span>
         </label>
       </div>
@@ -241,7 +248,7 @@ export default function ResourcesPage() {
               Monte Carlo Confidence Bands
             </h3>
             <p className="text-[11px] text-[#5a6b48] mb-4">
-              {mcResult.iterations.toLocaleString()} simulations · 90% confidence interval (P5–P95)
+              {mcResult.iterations.toLocaleString()} simulations \u00B7 90% confidence interval (P5\u2013P95)
             </p>
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart
@@ -261,7 +268,7 @@ export default function ResourcesPage() {
                 <Tooltip
                   contentStyle={{ background: "#101510", border: "1px solid #2a3a1e", borderRadius: 8, fontSize: 11, fontFamily: "monospace", color: "#edf2e7" }}
                   labelFormatter={(v) => `Day ${v}`}
-                  formatter={(v, name) => [`${Number(v).toFixed(1)}%`, name]}
+                  formatter={(v, name) => [`${Number(v ?? 0).toFixed(1)}%`, String(name)]}
                 />
                 <Area type="monotone" dataKey="fuelP95" name="P95 (Best)" stroke="#d2992266" strokeWidth={1} fill="none" strokeDasharray="3 3" />
                 <Area type="monotone" dataKey="fuelMedian" name="Median Fuel" stroke="#d29922" strokeWidth={2} fill="url(#mcFuelBand)" />
@@ -342,7 +349,7 @@ export default function ResourcesPage() {
         <div className="flex items-center gap-2 mb-2">
           <Zap className="h-3.5 w-3.5 text-[#7d9154]" />
           <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-[#7c8b65] font-mono">
-            Energy Balance — 24h Profile
+            Energy Balance \u2014 24h Profile
           </h2>
         </div>
 
@@ -436,7 +443,7 @@ export default function ResourcesPage() {
               <span className="text-[9px] font-mono uppercase tracking-[0.15em] text-[#5a6b48]">CARBON OFFSET</span>
             </div>
             <div className="text-lg font-bold font-mono text-[#edf2e7]">{(parseFloat(totalSolarToday) * 0.92 + parseFloat(totalWindToday) * 0.012).toFixed(1)} kg</div>
-            <span className="text-[10px] text-[#5a6b48] font-mono">CO₂ avoided today</span>
+            <span className="text-[10px] text-[#5a6b48] font-mono">CO\u2082 avoided today</span>
           </div>
         </div>
       </section>

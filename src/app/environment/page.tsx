@@ -10,9 +10,10 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   LineChart, Line, ScatterChart, Scatter, ZAxis,
 } from "recharts";
-import { EnvironmentalReading, EnvironmentalTrend } from "@/types";
+import { EnvironmentalTrend } from "@/types";
+import { useEnvironmentalData } from "@/hooks/use-api";
 
-const hourlyData: EnvironmentalReading[] = Array.from({ length: 24 }, (_, i) => ({
+const fallbackHourlyData = Array.from({ length: 24 }, (_, i) => ({
   timestamp: `${String(i).padStart(2, "0")}:00`,
   temperatureC: -28 + Math.sin(i / 3.8) * 8 + (Math.random() - 0.5) * 3,
   humidity: 65 + Math.sin(i / 4) * 15 + (Math.random() - 0) * 5,
@@ -75,11 +76,35 @@ const TREND_COLOR = { increasing: "text-amber-400", decreasing: "text-blue-400",
 
 export default function EnvironmentPage() {
   const [timeRange, setTimeRange] = useState<"24h" | "7d" | "30d">("24h");
+  const hours = timeRange === "24h" ? 24 : timeRange === "7d" ? 168 : 720;
+  const { readings, isLoading } = useEnvironmentalData("maitri", hours);
 
-  const avgTemp = useMemo(() => hourlyData.reduce((s, d) => s + d.temperatureC, 0) / hourlyData.length, []);
-  const avgWind = useMemo(() => hourlyData.reduce((s, d) => s + d.windSpeedKmh, 0) / hourlyData.length, []);
-  const maxWind = useMemo(() => Math.max(...hourlyData.map((d) => d.windSpeedKmh)), []);
-  const avgPressure = useMemo(() => hourlyData.reduce((s, d) => s + d.pressureHPA, 0) / hourlyData.length, []);
+  const hourlyData = useMemo(() => {
+    if (readings && readings.length > 0) {
+      return readings.map((r) => ({
+        timestamp: new Date(r.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }),
+        temperatureC: r.temperature,
+        humidity: r.humidity,
+        windSpeedKmh: r.windSpeed,
+        windDirection: typeof r.windDirection === "number" ? r.windDirection : 0,
+        pressureHPA: r.pressure,
+        uvIndex: r.uvIndex,
+        solarRadiationWm2: 0,
+        snowDepthCm: r.snowDepth ?? 0,
+        visibilityKm: r.visibility,
+        ozoneDobson: 0,
+        pm25: 0,
+        seaIceExtentKm2: 0,
+        seaIceConcentration: r.seaIceConcentration ?? 0,
+      }));
+    }
+    return fallbackHourlyData;
+  }, [readings]);
+
+  const avgTemp = useMemo(() => hourlyData.reduce((s, d) => s + d.temperatureC, 0) / hourlyData.length, [hourlyData]);
+  const avgWind = useMemo(() => hourlyData.reduce((s, d) => s + d.windSpeedKmh, 0) / hourlyData.length, [hourlyData]);
+  const maxWind = useMemo(() => Math.max(...hourlyData.map((d) => d.windSpeedKmh)), [hourlyData]);
+  const avgPressure = useMemo(() => hourlyData.reduce((s, d) => s + d.pressureHPA, 0) / hourlyData.length, [hourlyData]);
 
   const statCards = [
     { label: "Temperature", value: `${avgTemp.toFixed(1)}°C`, icon: Thermometer, color: "text-blue-400" },
@@ -96,7 +121,7 @@ export default function EnvironmentPage() {
         <div>
           <h1 className="text-2xl font-black tracking-wider text-[#edf2e7] uppercase">Environmental Monitoring</h1>
           <p className="text-xs text-[#7c8b65] font-mono tracking-wide mt-1">
-            Weather &bull; Sea Ice &bull; Ozone &bull; PM2.5 &bull; Trend Analysis &bull; Correlation
+            {isLoading ? "Loading..." : readings && readings.length > 0 ? `Live data · ${readings.length} readings` : "Simulated data"} &bull; Weather &bull; Sea Ice &bull; Ozone &bull; PM2.5 &bull; Trend Analysis &bull; Correlation
           </p>
         </div>
         <div className="flex gap-1 rounded border border-[#2a3a1e] bg-[#0b100b] p-0.5">

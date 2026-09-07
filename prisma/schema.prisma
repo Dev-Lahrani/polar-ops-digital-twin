@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String    @map("password_hash")
+  role         Role      @default(VIEWER)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  sessions     Session[]
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  ENGINEER
+  VIEWER
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Station {
+  id                 String   @id
+  name               String
+  latitude           Float
+  longitude          Float
+  crewMax            Int      @map("crew_max")
+  crewCount          Int      @map("crew_count")
+  temperature        Float
+  windSpeed          Float    @map("wind_speed")
+  riskLevel          String   @map("risk_level")
+  fuelCurrentL       Float    @map("fuel_current_l")
+  fuelCapacityL      Float    @map("fuel_capacity_l")
+  fuelDaysRemaining  Int      @map("fuel_days_remaining")
+  waterDaysRemaining Int      @map("water_days_remaining")
+  foodDaysRemaining  Int      @map("food_days_remaining")
+  generatorLoad      Float    @map("generator_load")
+  nextResupplyDays   Int      @map("next_resupply_days")
+  subsystems         Subsystem[]
+  simulations        Simulation[]
+  environmentalData  EnvironmentalData[]
+  inventory          InventoryItem[]
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("stations")
+}
+
+model Subsystem {
+  id          String   @id
+  stationId   String   @map("station_id")
+  station     Station  @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  subsystemId String   @map("subsystem_id")
+  name        String
+  type        String
+  status      String
+  loadPercent Float    @map("load_percent")
+  details     Json
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("subsystems")
+}
+
+model Simulation {
+  id         String  @id @default(cuid())
+  stationId  String  @map("station_id")
+  station    Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  type       String
+  input      Json
+  result     Json
+  iterations Int?
+  createdBy  String? @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("simulations")
+}
+
+model EnvironmentalData {
+  id         String   @id @default(cuid())
+  stationId  String   @map("station_id")
+  station    Station  @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  timestamp  DateTime
+  temperature Float
+  windSpeed   Float    @map("wind_speed")
+  windDir     String   @map("wind_dir")
+  humidity    Float
+  pressure    Float
+  visibility  Float
+  uvIndex     Float    @map("uv_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("environmental_data")
+  @@index([stationId, timestamp])
+}
+
+model Component {
+  id                       String   @id
+  name                     String
+  category                 String
+  weibullShape             Float    @map("weibull_shape")
+  weibullScale             Float    @map("weibull_scale")
+  operatingHours           Float    @map("operating_hours")
+  mtbf                     Float
+  lastMaintenanceDate      String   @map("last_maintenance_date")
+  nextScheduledMaintenance String   @map("next_scheduled_maintenance")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  @@map("components")
+}
+
+model InventoryItem {
+  id            String   @id @default(cuid())
+  stationId     String?  @map("station_id")
+  name          String
+  category      String
+  currentAmount Float    @map("current_amount")
+  maxCapacity   Float    @map("max_capacity")
+  unit          String
+  reorderPoint  Float    @map("reorder_point")
+  unitCost      Float    @map("unit_cost")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("inventory")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  details   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+  @@index([createdAt])
+}

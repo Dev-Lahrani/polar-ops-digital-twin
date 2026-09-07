@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { stations } from "@/data/stations";
+import { useStations } from "@/hooks/use-api";
 import ResourceBar from "@/components/resource-bar";
 import SystemOverview from "@/components/system-overview";
 import RiskIndicator from "@/components/risk-indicator";
-import { RiskLevel } from "@/types";
+import { RiskLevel, Station, Subsystem } from "@/types";
 import {
   Clock,
   ShieldCheck,
@@ -17,6 +17,7 @@ import {
   Thermometer,
   Wind,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -45,6 +46,8 @@ function getRiskBadgeColor(level: RiskLevel): string {
 export default function MissionControlDashboard() {
   const [mounted, setMounted] = useState(false);
   const [currentTime, setCurrentTime] = useState<string>("");
+  const { stations: stationData, isLoading } = useStations();
+  const stations: Station[] = stationData ?? [];
 
   useEffect(() => {
     setMounted(true);
@@ -58,21 +61,21 @@ export default function MissionControlDashboard() {
   }, []);
 
   const globalRisk: RiskLevel = stations.some(
-    (s) => s.riskLevel === "EMERGENCY" || s.riskLevel === "CRITICAL"
+    (s: Station) => s.riskLevel === "EMERGENCY" || s.riskLevel === "CRITICAL"
   )
     ? "CRITICAL"
-    : stations.some((s) => s.riskLevel === "WARNING")
+    : stations.some((s: Station) => s.riskLevel === "WARNING")
     ? "WARNING"
-    : stations.some((s) => s.riskLevel === "CAUTION")
+    : stations.some((s: Station) => s.riskLevel === "CAUTION")
     ? "CAUTION"
     : "NOMINAL";
 
-  const totalCrew = stations.reduce((acc, s) => acc + s.crewCount, 0);
-  const maxCrew = stations.reduce((acc, s) => acc + s.crewMax, 0);
+  const totalCrew = stations.reduce((acc: number, s: Station) => acc + s.crewCount, 0);
+  const maxCrew = stations.reduce((acc: number, s: Station) => acc + s.crewMax, 0);
   const avgGenLoad = Math.round(
-    stations.reduce((acc, s) => acc + (s.generatorLoad ?? 65), 0) / (stations.length || 1)
+    stations.reduce((acc: number, s: Station) => acc + (s.generatorLoad ?? 65), 0) / (stations.length || 1)
   );
-  const daysToNextResupply = Math.min(...stations.map((s) => s.nextResupplyDays ?? 30));
+  const daysToNextResupply = Math.min(...stations.map((s: Station) => s.nextResupplyDays ?? 30));
 
   const alerts: Array<{
     id: string;
@@ -81,7 +84,7 @@ export default function MissionControlDashboard() {
     message: string;
   }> = [];
 
-  stations.forEach((st) => {
+  stations.forEach((st: Station) => {
     if ((st.fuelDaysRemaining ?? 99) <= 30) {
       alerts.push({
         id: `${st.id}-fuel`,
@@ -98,7 +101,7 @@ export default function MissionControlDashboard() {
         message: `${st.name} water at ${st.resources.water}% — ${st.waterDaysRemaining}d remaining`,
       });
     }
-    st.subsystems.forEach((sub) => {
+    st.subsystems.forEach((sub: Subsystem) => {
       if (sub.status === "CRITICAL" || sub.status === "EMERGENCY") {
         alerts.push({
           id: `${st.id}-${sub.id}`,
@@ -109,6 +112,15 @@ export default function MissionControlDashboard() {
       }
     });
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-[#7d9154] h-8 w-8" />
+        <span className="ml-3 text-sm font-mono text-[#5a6b48]">Loading station telemetry...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
@@ -172,7 +184,7 @@ export default function MissionControlDashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {stations.map((station) => (
+          {stations.map((station: Station) => (
             <div
               key={station.id}
               className={`rounded-xl border bg-[#101510] p-5 transition-all hover:bg-[#141b13] ${getRiskBorder(station.riskLevel)}`}
@@ -304,7 +316,7 @@ export default function MissionControlDashboard() {
           {[
             { label: "PERSONNEL", value: `${totalCrew}/${maxCrew}`, sub: "crew", icon: Users },
             { label: "GEN LOAD", value: `${avgGenLoad}%`, sub: "average", icon: Zap },
-            { label: "FUEL", value: `${Math.round(stations.reduce((a, s) => a + s.resources.fuel, 0) / stations.length)}%`, sub: "average", icon: Fuel },
+            { label: "FUEL", value: `${Math.round(stations.reduce((a: number, s: Station) => a + s.resources.fuel, 0) / stations.length)}%`, sub: "average", icon: Fuel },
             { label: "RESUPPLY", value: `${daysToNextResupply}d`, sub: "nearest", icon: Ship },
           ].map((stat) => (
             <div key={stat.label} className="rounded-lg border border-[#2a3a1e] bg-[#101510] p-3">

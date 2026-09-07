@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { getStation, stations } from "@/data/stations";
-import { runSimulation } from "@/engine/simulation";
-import { SimulationInput, SimulationResult, Station } from "@/types";
+import { useStation } from "@/hooks/use-api";
+import { runSimulation } from "@/hooks/use-api";
+import { SimulationInput, SimulationResult } from "@/types";
 import SimulationPanel from "@/components/simulation-panel";
 import SimulationResults from "@/components/simulation-results";
 import { FlaskConical, Cpu, Info } from "lucide-react";
@@ -13,23 +13,20 @@ export default function SimulatorPage() {
   const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const currentStation: Station = getStation(selectedStationId) || stations[0];
+  const { station: currentStation, isLoading: stationLoading } = useStation(selectedStationId);
 
-  const handleSimulate = (input: SimulationInput) => {
+  const handleSimulate = async (input: SimulationInput) => {
     setIsLoading(true);
-
-    // Brief simulation compute latency for realistic digital-twin solver feel
-    setTimeout(() => {
-      const station = getStation(selectedStationId) || stations[0];
-      const result = runSimulation(station, input);
+    try {
+      const result = await runSimulation(selectedStationId, input as unknown as Record<string, unknown>);
       setSimulationResult(result);
+    } finally {
       setIsLoading(false);
-    }, 450);
+    }
   };
 
   const handleStationChange = (id: string) => {
     setSelectedStationId(id);
-    // Clear previous results when switching station
     setSimulationResult(null);
   };
 

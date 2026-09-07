@@ -1,21 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CopilotChat from "@/components/copilot-chat";
 import RiskHeatmap from "@/components/risk-heatmap";
-import { runMonteCarlo } from "@/engine/monte-carlo";
-import { getStation } from "@/data/stations";
-import { useMemo } from "react";
+import { useStation, runMonteCarlo } from "@/hooks/use-api";
 import { BrainCircuit } from "lucide-react";
+import { MonteCarloResult } from "@/types";
 
 export default function CopilotPage() {
   const [selectedStation, setSelectedStation] = useState("maitri");
-  const station = getStation(selectedStation);
+  const { station } = useStation(selectedStation);
+  const [mcResult, setMcResult] = useState<MonteCarloResult | null>(null);
 
-  const mcResult = useMemo(() => {
-    if (!station) return null;
-    return runMonteCarlo(station, {});
-  }, [station]);
+  useEffect(() => {
+    if (!station) return;
+    let cancelled = false;
+    runMonteCarlo(selectedStation, {}).then((res) => {
+      if (!cancelled) setMcResult(res);
+    }).catch(console.error);
+    return () => { cancelled = true; };
+  }, [station?.id, selectedStation]);
 
   return (
     <div className="min-h-screen bg-[#0b100b] p-6">
