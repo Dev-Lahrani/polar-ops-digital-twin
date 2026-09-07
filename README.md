@@ -1,23 +1,32 @@
-# 🧊 POLAR-OPS: Antarctic Operations Intelligence
+<div align="center">
+  <img src="https://images.unsplash.com/photo-1518002171953-a080ee817e1f?auto=format&fit=crop&q=80&w=1200&h=400" alt="Antarctica Banner" style="border-radius: 12px; margin-bottom: 20px;">
+  
+  # 🧊 POLAR-OPS: Antarctic Operations Intelligence
+  
+  **Smart India Hackathon 2025**  
+  *Problem Statement: Antarctic Station Operations Intelligence*
 
-![License](https://img.shields.io/badge/License-MIT-blue.svg)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat&logo=next.js)
-![Tailwind](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white)
+  <p align="center">
+    <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
+    <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
+    <img src="https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js" alt="Next.js">
+    <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind">
+  </p>
+</div>
 
-> **Smart India Hackathon 2025 — Problem Statement: Antarctic Station Operations Intelligence**
+<br/>
 
-## 1. Project Overview
+## 🌍 1. Project Overview
 
 **POLAR-OPS** is a real-time operations intelligence platform for India's two Antarctic research stations — **Bharati** (69°S, 76°E) and **Maitri** (69°S, 93°E). It provides station commanders and mission planners with predictive analytics, failure simulation, and automated resource prioritisation to prevent life-threatening crises during the 8-month polar winter isolation window.
 
-### The Core Problem
+### 🚨 The Core Problem
 
 India operates two permanent Antarctic stations under extreme isolation. During the **polar winter (March–October)**, resupply vessels cannot reach either station. A single subsystem failure — a generator trip, a water pipe freeze, a comms blackout — can cascade into a station-wide emergency within hours. Today, station planners rely on spreadsheets, radio check-ins, and manual calculations. There is no integrated tool that answers the critical question:
 
 > *"If X fails, what happens next, and what should we do right now?"*
 
-### Our Solution
+### 💡 Our Solution
 
 POLAR-OPS answers that question through:
 1. **Deterministic Physics Engine** — calculates real cascading effects from subsystem failures.
@@ -28,13 +37,15 @@ POLAR-OPS answers that question through:
 
 ---
 
-## 2. Unique Selling Points (USPs)
+## 🚀 2. Unique Selling Points (USPs)
+
+<img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=1200&h=300" alt="Dashboard Simulation" style="border-radius: 12px; margin-bottom: 20px;">
 
 ### 🎲 USP 1: Monte Carlo Resource Depletion Forecasting
 Instead of predicting a single "days until fuel runs out" number, POLAR-OPS runs **10,000 Monte Carlo simulations** varying weather conditions, crew consumption, generator efficiency, and resupply delay probabilities to produce a **probability distribution** of depletion dates. This tells the commander *how much risk they actually face*.
 
 ### 🧠 USP 2: AI-Powered Operations Copilot
-A natural-language interface that station commanders can query in plain English (or Hindi) to get actionable recommendations. The copilot explains *why* each recommendation matters, not just *what* to do. (e.g. *"What happens if Generator 2 goes offline?"* -> *"With 2 generators online, total capacity drops... Immediate action: Shed the Science Lab."*)
+A natural-language interface that station commanders can query in plain English (or Hindi) to get actionable recommendations. The copilot explains *why* each recommendation matters, not just *what* to do. *(e.g. "What happens if Generator 2 goes offline?" -> "With 2 generators online, total capacity drops... Immediate action: Shed the Science Lab.")*
 
 ### 🔧 USP 3: Predictive Maintenance (MTBF/Weibull Analysis)
 Uses **Weibull distribution analysis** on historical failure data to predict *when* each subsystem component is most likely to fail, enabling proactive condition-based replacement before failure occurs.
@@ -47,7 +58,7 @@ An interactive SVG schematic of the station that shows real-time subsystem healt
 
 ---
 
-## 3. System Architecture
+## ⚙️ 3. System Architecture
 
 ```text
 ┌─────────────────────────────────────────────────────────────────┐
@@ -86,35 +97,29 @@ An interactive SVG schematic of the station that shows real-time subsystem healt
 
 ---
 
-## 4. Impact & Benefits
+## 📈 4. Impact & Benefits
 
 | Metric | Current (Manual) | With POLAR-OPS | Improvement |
 |--------|------------------|----------------|-------------|
-| **Failure detection time** | 2-4 hours (radio report) | < 15 minutes (real-time monitoring) | **87% faster** |
-| **Cascade prediction accuracy** | ~40% (experience-based) | ~85% (physics model) | **2.1× more accurate** |
-| **Emergency response time** | 1-2 hours | < 5 minutes (simulated scenarios) | **96% faster** |
-| **Fuel waste** | 15-20% over-provisioning | 5-8% (Monte Carlo optimised) | **60% less waste** |
+| **Failure detection time** | 2-4 hours (radio report) | < 15 minutes (real-time monitoring) | **87% faster** 🚀 |
+| **Cascade prediction accuracy** | ~40% (experience-based) | ~85% (physics model) | **2.1× more accurate** 🎯 |
+| **Emergency response time** | 1-2 hours | < 5 minutes (simulated scenarios) | **96% faster** ⚡ |
+| **Fuel waste** | 15-20% over-provisioning | 5-8% (Monte Carlo optimised) | **60% less waste** ♻️ |
 
 ---
 
-## 5. Getting Started
+## 🛠️ 5. Getting Started
 
 First, run the development server:
 
 ```bash
 npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## 6. Project Structure
+## 📂 6. Project Structure
 
 - `src/app/` - Next.js App Router pages (Mission Control, Simulator, Cascade, Copilot, Predictive, Resources, Resupply)
 - `src/components/` - Reusable UI components (Charts, SVG interactives, Copilot Chat)
@@ -122,7 +127,23 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `src/data/` - Base configuration and stations data
 - `src/types/` - TypeScript interface definitions
 
-## 7. Team & Acknowledgements
+---
 
-**Problem Statement**: Antarctic Station Operations Intelligence — Smart India Hackathon 2025
-**Data Sources**: Indian Antarctic Programme published specifications, Antarctic Meteorological Research Center (AMRC).
+## 👥 7. Team & Acknowledgements
+
+**The Team:**
+- Gaytri
+- Dev
+- Niraj
+- Falguni
+- Anjali
+
+**Acknowledgements:**
+- **Problem Statement**: Antarctic Station Operations Intelligence — Smart India Hackathon 2025
+- **Data Sources**: Indian Antarctic Programme published specifications, Antarctic Meteorological Research Center (AMRC).
+
+<br/>
+
+<div align="center">
+  <p>Built with ❤️ for the Smart India Hackathon 2025</p>
+</div>
