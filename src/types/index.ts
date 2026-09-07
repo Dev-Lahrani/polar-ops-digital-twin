@@ -243,3 +243,140 @@ export interface WeatherForecast {
   nextSevereWindow: string | null;
   windChillWarning: boolean;
 }
+
+export type AuthRole = "admin" | "engineer" | "viewer";
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: AuthRole;
+  station: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  category: "fuel" | "food" | "medical" | "spare-parts" | "science" | "general";
+  quantity: number;
+  unit: string;
+  minRequired: number;
+  location: string;
+  expiryDate?: string;
+  lastUpdated: string;
+  status: "adequate" | "low" | "critical" | "expiring";
+}
+
+export interface CargoManifest {
+  id: string;
+  vesselName: string;
+  departureDate: string;
+  estimatedArrival: string;
+  status: "planned" | "in-transit" | "arrived" | "delayed";
+  totalWeightKg: number;
+  maxCapacityKg: number;
+  items: CargoItem[];
+  iceConditions?: string;
+  route?: string;
+}
+
+export interface CargoItem {
+  id: string;
+  inventoryItemId: string;
+  name: string;
+  weightKg: number;
+  priority: PriorityLevel;
+  coldChain: boolean;
+  temperatureRangeC?: { min: number; max: number };
+  packed: boolean;
+  mcdaScore?: number;
+}
+
+export interface VesselSchedule {
+  id: string;
+  vesselName: string;
+  vesselType: "icebreaker" | "cargo" | "survey";
+  departurePort: string;
+  destinationStation: string;
+  departureDate: string;
+  estimatedArrival: string;
+  seaIceExtentKm2: number;
+  seaIceAnomaly: number;
+  routeStatus: "clear" | "moderate-ice" | "heavy-ice" | "blocked";
+}
+
+export interface SeaIceData {
+  date: string;
+  extentKm2: number;
+  anomaly: number;
+  concentration: number;
+  thicknessM: number;
+}
+
+export interface EnvironmentalReading {
+  timestamp: string;
+  temperatureC: number;
+  humidity: number;
+  windSpeedKmh: number;
+  windDirection: number;
+  pressureHPA: number;
+  uvIndex: number;
+  solarRadiationWm2: number;
+  snowDepthCm: number;
+  visibilityKm: number;
+  ozoneDobson: number;
+  pm25: number;
+  seaIceExtentKm2: number;
+  seaIceConcentration: number;
+}
+
+export interface EnvironmentalTrend {
+  parameter: string;
+  unit: string;
+  currentValue: number;
+  avg30Day: number;
+  minRecorded: number;
+  maxRecorded: number;
+  trend: "increasing" | "decreasing" | "stable";
+  anomalyPercent: number;
+}
+
+export interface EnergyBalanceEntry {
+  timestamp: string;
+  solarGenKw: number;
+  windGenKw: number;
+  dieselGenKw: number;
+  totalGenKw: number;
+  habitatLoadKw: number;
+  scienceLoadKw: number;
+  hvacLoadKw: number;
+  commsLoadKw: number;
+  totalLoadKw: number;
+  surplusDeficitKw: number;
+  batterySoC: number;
+  renewablePercent: number;
+}
+
+export interface Alert {
+  id: string;
+  type: "cold-chain-breach" | "low-stock" | "expiry-warning" | "vessel-delay" | "environmental" | "system";
+  severity: RiskLevel;
+  title: string;
+  message: string;
+  timestamp: string;
+  acknowledged: boolean;
+  stationId: string;
+}
+
+export interface MCDAInput {
+  name: string;
+  weightKg: number;
+  priority: PriorityLevel;
+  coldChain: boolean;
+  expiryDays?: number;
+  stockLevel: "adequate" | "low" | "critical" | "expiring";
+}
+export interface MCDAOutput extends MCDAInput {
+  score: number;
+  rank: number;
+}

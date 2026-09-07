@@ -16,6 +16,9 @@ import {
   Radio,
   BrainCircuit,
   Wrench,
+  Package,
+  CloudSun,
+  Zap,
 } from "lucide-react";
 
 interface SidebarContextType {
@@ -48,12 +51,13 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { name: "Mission Control", href: "/", icon: LayoutDashboard },
-  { name: "Station Twin", href: "/station/bharati", icon: Building2, matchPrefix: true },
+  { name: "Infrastructure", href: "/station/bharati", icon: Building2, matchPrefix: true },
+  { name: "Energy", href: "/resources", icon: Zap },
+  { name: "Logistics", href: "/logistics", icon: Ship },
+  { name: "Environmental", href: "/environment", icon: CloudSun },
   { name: "Simulator", href: "/simulator", icon: FlaskConical },
   { name: "Failure Cascade", href: "/cascade", icon: AlertTriangle },
-  { name: "Resources", href: "/resources", icon: BarChart3 },
-  { name: "Resupply", href: "/resupply", icon: Ship },
-  { name: "Predictive", href: "/predictive", icon: Wrench },
+  { name: "Predictive Maintenance", href: "/predictive", icon: Wrench },
   { name: "AI Copilot", href: "/copilot", icon: BrainCircuit },
 ];
 

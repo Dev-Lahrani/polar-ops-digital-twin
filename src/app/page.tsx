@@ -112,6 +112,26 @@ export default function MissionControlDashboard() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in">
+      {/* Institutional Header */}
+      <div className="rounded-lg border border-[#2a3a1e] bg-[#101510] p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded bg-[#1a2518] border border-[#2a3a1e]">
+            <span className="text-[10px] font-black text-[#7d9154] font-mono">MoES</span>
+          </div>
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-[#7c8b65]">Ministry of Earth Sciences, Government of India</p>
+            <p className="text-[10px] font-mono text-[#5a6b48]">National Centre for Polar & Ocean Research (NCPOR)</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 text-[9px] font-mono text-[#5a6b48]">
+          <span>Indian Antarctic Programme</span>
+          <span className="text-[#2a3a1e]">|</span>
+          <span>Maitri-II · Bharati</span>
+          <span className="text-[#2a3a1e]">|</span>
+          <span className="text-[#7d9154]">Digital Twin v2.0</span>
+        </div>
+      </div>
+
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">

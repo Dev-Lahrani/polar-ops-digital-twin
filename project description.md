@@ -227,6 +227,88 @@ Crew Safety at Risk
 
 ---
 
+### USP 6: Environmental Monitoring Dashboard
+
+**What it does**: A dedicated real-time environmental monitoring page that visualises meteorological conditions around both Antarctic stations, with anomaly detection, correlation analysis, and trend tracking.
+
+**Technical Implementation**:
+```
+Environmental Monitoring Pipeline:
+├── Data Sources:
+│   ├── Station AWS (Automated Weather Station) — temperature, wind, pressure, humidity
+│   ├── Solar radiometer — solar irradiance, UV index
+│   ├── Antarctic meteorological models — reanalysis data
+│   └── Historical baseline (30-year averages) for anomaly comparison
+├── Visualisations:
+│   ├── Hourly area charts (temperature, wind speed, pressure, humidity, solar, UV)
+│   ├── Radar/spider anomaly chart (deviation from baseline per parameter)
+│   ├── Monthly temperature profile (box-plot style, 12-month view)
+│   ├── Temperature vs wind scatter plot (correlation analysis)
+│   └── Parameter trend list with anomaly percentage indicators
+├── Anomaly Detection:
+│   ├── Z-score calculation against 30-year baseline
+│   ├── Threshold-based alerts (temperature < −35°C, wind > 60 km/h)
+│   └── Trend direction (rising/stable/falling) with rate of change
+└── Integration:
+    ├── Feeds temperature data into simulation engine
+    ├── Provides wind chill factor for heating demand model
+    └── Alerts feed into cascade engine for storm scenarios
+```
+
+**Dashboard Visualisation**:
+- **Hourly Metrics Grid**: Six parameter charts (temp, wind, pressure, humidity, solar, UV) with color-coded trend indicators
+- **Anomaly Radar**: Spider chart showing deviation magnitude per parameter — quickly identifies which parameters are outside normal range
+- **Temperature Profile**: 12-month historical view showing current month highlighted against seasonal pattern
+- **Correlation Scatter**: Temperature vs wind speed scatter plot revealing storm patterns and wind chill relationships
+
+**What makes it novel**: Environmental data is presented not as raw numbers but as **anomaly-aware, trend-tracked, correlation-linked intelligence** — the station commander instantly sees what's abnormal, what's changing, and what it means for operations.
+
+---
+
+### USP 7: Logistics & Supply Chain Optimiser
+
+**What it does**: An integrated logistics management page combining real-time inventory tracking, multi-criteria cargo packing optimisation, vessel scheduling with sea-ice conditions, and cold-chain compliance monitoring.
+
+**Technical Implementation**:
+```
+Logistics Management System:
+├── Inventory Tracker:
+│   ├── Real-time stock levels (fuel, water, food, medical, spare parts)
+│   ├── Threshold-based status badges (adequate / low / critical / expiring)
+│   ├── Days-remaining calculation per resource
+│   └── Consumption rate tracking with trend indicators
+├── Cargo Packing Optimiser (MCDA):
+│   ├── Weighted scoring: urgency (40%) + impact (35%) + weight (15%) + cost (10%)
+│   ├── Dual visualisation: horizontal bar chart + ranked priority list
+│   ├── Colour-coded bars: CRITICAL (red) / HIGH (amber) / MEDIUM (yellow) / LOW (green)
+│   └── Resupply delay impact modelling (score recalculation with delay scenarios)
+├── Vessel Schedule Manager:
+│   ├── Multi-vessel cards with status (scheduled / en-route / delayed / arrived)
+│   ├── Route visualisation (departure → current position → destination)
+│   ├── ETA countdown with delay probability
+│   └── Cargo capacity vs planned load comparison
+├── Sea Ice Analysis:
+│   ├── Sea ice extent trend chart (monthly, 12-month view)
+│   ├── Station-specific ice concentration display
+│   ├── Route feasibility assessment based on ice conditions
+│   └── Historical ice extent comparison for seasonal planning
+└── Cold Chain Monitor:
+    ├── Temperature-sensitive cargo tracking
+    ├── Threshold breach alerts (medical supplies, reagents, samples)
+    ├── Compliance status per shipment
+    └── Escalation workflow for cold-chain failures
+```
+
+**Dashboard Visualisation**:
+- **Inventory Grid**: Resource cards with status badges, sparkline consumption trends, and days-remaining prominently displayed
+- **MCDA Score Chart**: Horizontal bar chart with ranked items, colour-coded by priority level
+- **Vessel Schedule Cards**: Status badges, route visualisation, ETA countdown, and cargo capacity meters
+- **Sea Ice Trend Line**: Monthly ice extent with station positions marked, showing seasonal opening/closing of navigation windows
+
+**What makes it novel**: No existing Antarctic logistics tool combines **real-time inventory, MCDA-optimised cargo packing, vessel scheduling with live sea-ice data, and cold-chain monitoring** in a single integrated view. The MCDA scoring auto-recalculates when resupply delays are factored in, providing dynamic re-prioritisation.
+
+---
+
 ## 3. System Architecture
 
 ### High-Level Architecture
@@ -489,16 +571,18 @@ When resupply is delayed by 7 days:
 
 ### Page 1: Mission Control (`/`)
 **Purpose**: Executive overview — "What's happening at both stations right now?"
+- MoES/NCPOR institutional header with programme identity
 - Dual station cards with risk levels, weather, crew, resources
 - Quick-glance resource bars (fuel/water/food days remaining)
 - One-click navigation to detailed views
+- Active alert feed with severity classification
 
-### Page 2: Station Twin (`/station/[id]`)
-**Purpose**: Deep-dive into a single station's systems
+### Page 2: Infrastructure Twin (`/station/[id]`)
+**Purpose**: Deep-dive into a single station's subsystems
 - Interactive SVG schematic with 8 subsystem modules
 - Click any module to see: status, load, details, maintenance status
 - Connection lines show resource flow (animated)
-- Real-time health monitoring
+- Real-time health monitoring with Weibull reliability overlay
 
 ### Page 3: Simulator (`/simulator`)
 **Purpose**: "What if?" scenario analysis
@@ -512,17 +596,51 @@ When resupply is delayed by 7 days:
 - Step-by-step cascade visualization with domain colors
 - Mitigation recommendations for each scenario
 
-### Page 5: Resources (`/resources`)
-**Purpose**: Detailed resource monitoring and projections
+### Page 5: Energy (`/resources`)
+**Purpose**: Detailed energy monitoring, generation vs load balance, and resource projections
+- **Energy Balance Dashboard**: 24-hour generation (solar/wind/diesel) vs load (habitat/science/HVAC/comms) area + bar charts
+- **Battery State of Charge**: Real-time SOC gauge with colour-coded health
+- **Carbon Offset**: CO₂ avoided from renewable generation
 - Resource cards with days remaining, consumption rates
 - Depletion chart with confidence bands (Monte Carlo output)
-- Comparison mode (before/after simulation)
+- Risk heatmap and comparison mode
 
-### Page 6: Resupply (`/resupply`)
-**Purpose**: Prioritise what to send on the next supply vessel
-- Priority-ranked resource list with animated bars
-- Delay impact comparison
-- Weight and cost optimisation
+### Page 6: Environmental (`/environment`)
+**Purpose**: Real-time meteorological monitoring with anomaly detection
+- Hourly parameter area charts (temperature, wind, pressure, humidity, solar, UV)
+- Radar anomaly chart showing deviation from 30-year baseline
+- Monthly temperature profile (12-month historical view)
+- Temperature vs wind scatter correlation
+- Parameter trend list with anomaly percentage indicators
+
+### Page 7: Logistics (`/logistics`)
+**Purpose**: Supply chain management and cargo optimisation
+- Inventory tracker with status badges (adequate/low/critical/expiring)
+- MCDA cargo packing optimiser (bar chart + ranked priority list)
+- Vessel schedule cards with sea-ice conditions and ETA countdown
+- Sea ice extent trend chart with station positions
+- Cold-chain alert monitor
+
+### Page 8: Predictive Maintenance (`/predictive`)
+**Purpose**: Condition-based maintenance scheduling
+- Weibull reliability curves for all subsystem components
+- Risk score cards for components approaching failure
+- Maintenance timeline (optimal replacement windows)
+- MTBF analysis with historical failure pattern tracking
+
+### Page 9: AI Copilot (`/copilot`)
+**Purpose**: Natural-language operations assistant
+- Chat interface for querying station status
+- Plain-language recommendations with quantified impact
+- Explainable reasoning with confidence disclosure
+- Escalation alerts for low-confidence responses
+
+### Page 10: Login (`/login`)
+**Purpose**: Role-based access control
+- Email/password authentication with demo credentials
+- Three roles: Admin (commander), Engineer (ops), Viewer (observer)
+- Route protection with automatic redirect
+- Service worker registration for offline capability
 
 ---
 
