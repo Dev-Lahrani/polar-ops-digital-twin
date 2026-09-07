@@ -70,6 +70,18 @@ export default function Home() {
           <span>📊</span>
           Resource Intelligence
         </Link>
+        <Link
+          href="/resupply"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border text-sm font-bold uppercase tracking-wider transition-colors hover:border-[#3fb950] hover:text-[#3fb950]"
+          style={{
+            borderColor: "#30363d",
+            background: "#161b22",
+            color: "#8b949e",
+          }}
+        >
+          <span>🚢</span>
+          Resupply Priority
+        </Link>
       </div>
     </div>
   );

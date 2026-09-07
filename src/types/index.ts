@@ -74,3 +74,18 @@ export interface SimulationResult {
   resourceTimeline: ResourceTimelinePoint[];
   nextResupplyDay: number;
 }
+
+export type PriorityLevel = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+
+export interface ResupplyItem {
+  id: string;
+  name: string;
+  currentAmount: number;
+  requiredAmount: number;
+  unit: string;
+  priorityScore: number;
+  priorityLevel: PriorityLevel;
+  rationale: string;
+  icon: string;
+  weightKg: number;
+}
