@@ -39,7 +39,7 @@ POLAR-OPS answers that question through:
 
 ## 🚀 2. Unique Selling Points (USPs)
 
-<img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=1200&h=300" alt="Dashboard Simulation" style="border-radius: 12px; margin-bottom: 20px;">
+<img src="https://images.unsplash.com/photo-1418985991508-e47386d96a71?auto=format&fit=crop&q=80&w=1200&h=300" alt="Cold Atmosphere Simulation" style="border-radius: 12px; margin-bottom: 20px;">
 
 ### 🎲 USP 1: Monte Carlo Resource Depletion Forecasting
 Instead of predicting a single "days until fuel runs out" number, POLAR-OPS runs **10,000 Monte Carlo simulations** varying weather conditions, crew consumption, generator efficiency, and resupply delay probabilities to produce a **probability distribution** of depletion dates. This tells the commander *how much risk they actually face*.
