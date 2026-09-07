@@ -1,4 +1,4 @@
-export type RiskLevel = "nominal" | "warning" | "critical";
+export type RiskLevel = "NOMINAL" | "CAUTION" | "WARNING" | "CRITICAL" | "EMERGENCY";
 
 export interface Subsystem {
   id: string;
@@ -10,6 +10,13 @@ export interface Subsystem {
   icon: string;
 }
 
+export interface StationResources {
+  power: number;
+  fuel: number;
+  water: number;
+  food: number;
+}
+
 export interface Station {
   id: string;
   name: string;
@@ -17,6 +24,12 @@ export interface Station {
   latitude: number;
   longitude: number;
   established: number;
+  crewCount: number;
+  crewMax: number;
+  riskLevel: RiskLevel;
+  resources: StationResources;
+  temperature: number;
+  windSpeed: number;
   subsystems: Subsystem[];
 }
 
