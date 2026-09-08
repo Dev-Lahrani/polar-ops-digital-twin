@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     const stationTyped = {
       ...station,
-      resources: station.resources as any,
+      resources: (station as any).resources,
       subsystems: station.subsystems.map((s: any) => ({
         ...s,
         details: s.details as Record<string, string>,

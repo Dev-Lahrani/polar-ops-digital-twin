@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -16,6 +16,7 @@ model User {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
   sessions     Session[]
+  accounts     Account[]
   auditLogs    AuditLog[]
 
   @@map("users")
@@ -43,12 +44,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String  @map("provider_account_id")
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -159,6 +160,7 @@ model Component {
 model InventoryItem {
   id            String   @id @default(cuid())
   stationId     String?  @map("station_id")
+  station       Station? @relation(fields: [stationId], references: [id], onDelete: SetNull)
   name          String
   category      String
   currentAmount Float    @map("current_amount")
